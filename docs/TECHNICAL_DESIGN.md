@@ -1199,7 +1199,37 @@ RLS becomes a migration plus a session-management change, not a schema redesign.
 `/auth/magic-link` always returns 202. Both are rate-limited per address and per IP, as are check-in
 scan attempts.
 
-### 15.4 Data handled with care
+### 15.4 Configuration fails closed
+
+Added 2026-09-19, from the Phase 0 skeleton.
+
+Two behaviours are gated on `environment`: the JWT signing key, and
+`/auth/dev-sign-in`, which mints a token for any user given nothing but an email
+address. Both are correct in dev and catastrophic in production, and both were originally
+protected by a setting that *defaulted to dev*. An operator who forgot one environment
+variable would have got a published signing key and a live authentication bypass.
+
+The rule is therefore inverted:
+
+- **`environment` defaults to `prod`.** Running in dev is an explicit opt-in, which the
+  Makefile, CI and the test fixtures each perform. An unconfigured deployment gets the
+  locked-down path.
+- **The process refuses to start** outside dev if the signing key is the one published in
+  this repository, or is shorter than 32 characters. A guard that recognised only the exact
+  default would be defeated by someone typing `changeme`.
+- **`/auth/dev-sign-in` is mounted only in dev**, so elsewhere the route does not exist
+  rather than existing and refusing. A later refactor can drop a refusal; it cannot
+  accidentally re-register a router.
+
+All three are pinned by tests (`test_config_guard.py`, `test_dev_endpoint_isolation.py`),
+the second of which starts real subprocesses and asserts a 404 in prod and staging. CI runs
+a job whose only job is to confirm the guard still fires.
+
+The general principle, worth applying to every setting added later: **a missing
+configuration value must fail closed.** The cost of a noisy startup failure is minutes; the
+cost of a silent insecure default is a breach.
+
+### 15.5 Data handled with care
 
 - Raw coordinates are never stored or logged — only the geofence boolean (§8.2).
 - `presence_visibility` is applied in the query, not the serializer (§5.2).
@@ -1255,6 +1285,8 @@ measured retroactively.
 | D1 | Exclusion constraint, not application locking | §4.1 — correctness by schema; removes a bug class |
 | D13 | Bounded retry on `40P01`/`40001` around the booking write | §4.1 — Phase 0 found real deadlocks among exclusion-constraint waiters |
 | D14 | `tstzrange` bounds always written explicitly as `[)` | §4.1 — a library default here would silently break half-day booking |
+| D15 | `environment` defaults to `prod`; dev is an explicit opt-in | §15.4 — a forgotten variable must not yield a live auth bypass |
+| D16 | Dev-only routes are mounted conditionally, not gated inside the handler | §15.4 — a refactor can drop a check; it cannot re-register a router |
 | D2 | `site_id` + `local_date` denormalized onto `booking` | §3.4 — serves the single timezone rule |
 | D3 | `jsonb` attributes + GIN, not an EAV table | §3.2 — open-ended filters, no join on the hot path |
 | D4 | Backend-for-frontend OIDC | §6.1 — secrets server-side, one token format, SAML later is server-only |

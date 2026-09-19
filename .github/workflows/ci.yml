@@ -7,6 +7,9 @@ on:
 jobs:
   api:
     runs-on: ubuntu-latest
+    # Settings fail closed (app/config.py). CI opts into dev like any dev box.
+    env:
+      DESKFLOW_ENVIRONMENT: dev
     services:
       postgres:
         image: postgres:16
@@ -48,6 +51,26 @@ jobs:
         working-directory: client
       - run: npm run build
         working-directory: client
+
+  config-guard:
+    # Proves the deployment guard still refuses to boot unconfigured. If this
+    # ever passes silently, the guard has been weakened.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync
+        working-directory: api
+      - name: API must refuse to start with the default secret outside dev
+        working-directory: api
+        env:
+          DESKFLOW_ENVIRONMENT: prod
+        run: |
+          if uv run python -c "import app.config" 2>/dev/null; then
+            echo "::error::config guard did not fire: the API booted in prod with the default JWT secret"
+            exit 1
+          fi
+          echo "guard fired as expected"
 
   contract:
     # The generated client must match the live schema, so drift is a failing

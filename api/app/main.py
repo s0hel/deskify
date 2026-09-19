@@ -1,6 +1,7 @@
 import structlog
 from fastapi import FastAPI
 
+from app.config import settings
 from app.errors import DeskflowError, handle
 from app.routers import auth, core
 
@@ -16,6 +17,13 @@ app = FastAPI(
 app.add_exception_handler(DeskflowError, handle)
 app.include_router(auth.router)
 app.include_router(core.router)
+
+# /auth/dev-sign-in mints a token for any user from an email alone. It is
+# mounted only in dev, so in every other environment the route genuinely does
+# not exist rather than existing and refusing. Settings default to prod, so an
+# unconfigured deployment lands here (app/config.py).
+if settings.is_dev:
+    app.include_router(auth.dev_router)
 
 
 @app.get("/health", tags=["ops"])

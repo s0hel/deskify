@@ -1,5 +1,9 @@
 .PHONY: up down migrate seed api test test-api test-client build spike gen-api lint
 
+# Settings fail closed: environment defaults to "prod", which refuses the
+# development signing key and disables /auth/dev-sign-in. Local targets opt in.
+export DESKFLOW_ENVIRONMENT = dev
+
 up:            ## start Postgres
 	docker compose up -d db
 

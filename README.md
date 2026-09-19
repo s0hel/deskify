@@ -41,6 +41,26 @@ verified and running.
 
 ---
 
+## Configuration fails closed
+
+`DESKFLOW_ENVIRONMENT` defaults to **`prod`**, not dev. Two things depend on it — the
+JWT signing key, and `/auth/dev-sign-in`, which mints a token for any user from an
+email alone. A forgotten variable must not hand out a published signing key and a live
+auth bypass, so dev is an explicit opt-in:
+
+- the `make` targets export `DESKFLOW_ENVIRONMENT=dev`
+- CI sets it for the test jobs
+- `tests/conftest.py` sets it before anything imports `app.config`
+
+Outside dev the API **refuses to start** if the signing key is the one in this
+repository or is under 32 characters, and `/auth/dev-sign-in` is not registered at all.
+
+Copy `api/.env.example` to `api/.env` for local work. For anything else:
+
+```bash
+openssl rand -base64 48
+```
+
 ## The tests that matter
 
 Four carry disproportionate weight (TDD §16). They are the reason to trust the rest.
@@ -60,6 +80,9 @@ cd api && uv run pytest tests/test_concurrency.py -q
 - **`test_policy.py`** — 15 tests, no database, 0.01s. The rules are pure functions.
 - **`client/src/floorplan/accessibility.test.tsx`** — asserts everything bookable on the
   plan is bookable in the list. The list is the accessible path, not a fallback.
+- **`test_dev_endpoint_isolation.py`** — starts real subprocesses and asserts
+  `/auth/dev-sign-in` returns 404 in prod and staging, and that the app refuses to boot
+  with the default signing key.
 
 ---
 

@@ -4,6 +4,13 @@ Note the split: the policy tests (§16.1) touch no database at all, because the
 rules are pure. Only tests that request `db` get a connection.
 """
 
+# Settings fail closed: environment defaults to "prod", which refuses the
+# development signing key (app/config.py). Opt into dev BEFORE anything imports
+# app.config -- this must stay above the app imports below.
+import os
+
+os.environ.setdefault("DESKFLOW_ENVIRONMENT", "dev")
+
 from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
