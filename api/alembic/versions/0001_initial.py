@@ -7,6 +7,25 @@ Revises:
 from alembic import op
 from app.models import Base
 
+#: Frozen at this revision. Do not add to this list -- new tables belong to a
+#: new migration.
+TABLES_AT_0001 = (
+    "organization",
+    "email_domain",
+    "app_user",
+    "site",
+    "floor",
+    "zone",
+    "resource",
+    "booking",
+    "site_day_capacity",
+    "policy",
+    "idempotency_key",
+    "job",
+    "day_declaration",
+    "audit_log",
+)
+
 revision = "0001"
 down_revision = None
 branch_labels = None
@@ -18,8 +37,19 @@ def upgrade() -> None:
     # exclusion constraint below needs for `resource_id WITH =`.
     op.execute("CREATE EXTENSION IF NOT EXISTS btree_gist")
 
+    # ONLY the tables that existed at this revision.
+    #
+    # `Base.metadata.create_all()` with no argument creates whatever the models
+    # look like TODAY, which makes this migration a moving target rather than a
+    # snapshot: add a table to models.py and this revision silently starts
+    # creating it, then the later revision that is supposed to create it fails
+    # with "relation already exists" -- but only on a fresh database, so the
+    # existing dev box never notices. Found by deploying (see §14.5).
     bind = op.get_bind()
-    Base.metadata.create_all(bind=bind)
+    Base.metadata.create_all(
+        bind=bind,
+        tables=[Base.metadata.tables[name] for name in TABLES_AT_0001],
+    )
 
     # ------------------------------------------------------------------
     # TDD §4.1 -- the load-bearing decision of the entire design.
@@ -57,4 +87,8 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.execute("ALTER TABLE booking DROP CONSTRAINT IF EXISTS booking_no_double_allocation")
-    Base.metadata.drop_all(bind=op.get_bind())
+    bind = op.get_bind()
+    Base.metadata.drop_all(
+        bind=bind,
+        tables=[Base.metadata.tables[name] for name in TABLES_AT_0001],
+    )

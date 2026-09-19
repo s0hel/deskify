@@ -1,0 +1,6 @@
+.vercel
+
+# Real environment files never get committed...
+.env*
+# ...except the one that only points at a local API and holds no secrets.
+!.env.development

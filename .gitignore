@@ -16,3 +16,8 @@ client/android/
 
 # build artifacts
 client/tsconfig.tsbuildinfo
+
+# never commit real environment files
+.env.prod
+.env.*.local
+*.env.prod

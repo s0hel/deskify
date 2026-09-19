@@ -51,6 +51,34 @@ verified and running.
 
 ---
 
+## Deployed
+
+| | |
+|---|---|
+| Web | https://deskify-web-eight.vercel.app |
+| API | https://deskify-api-pi.vercel.app |
+| Database | Prisma Postgres, migrated to head |
+
+```bash
+curl https://deskify-api-pi.vercel.app/health
+```
+
+**It cannot be signed into yet.** `/auth/dev-sign-in` is deliberately not mounted outside
+dev, real OIDC needs Google or Entra credentials, and the magic-link fallback is specified
+but unbuilt. The infrastructure is verified — the API reaches the database, CORS admits
+only the web origin — but nobody can log in until an identity provider is configured.
+Setting `DESKFLOW_ENVIRONMENT=dev` on the deployment would put an unauthenticated token
+minter on a public URL; don't.
+
+**There is also no background worker**, so the auto-release sweep (FR-4.4) and the other
+scheduled jobs have nowhere to run. See TDD §14.5 and open question T7.
+
+Migrations are run by hand against the production URL:
+
+```bash
+cd api && env $(grep -v '^#' .env.prod | xargs) uv run alembic upgrade head
+```
+
 ## Configuration fails closed
 
 `DESKFLOW_ENVIRONMENT` defaults to **`prod`**, not dev. Three things depend on it — the

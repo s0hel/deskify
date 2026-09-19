@@ -192,3 +192,51 @@ def test_jwt_guard_errors_never_echo_the_key():
     with pytest.raises(ValidationError) as caught:
         Settings(**prod(jwt_secret="hunter2-but-too-short"))
     assert "hunter2" not in str(caught.value)
+
+
+# --------------------------------------------------------------------------
+# CORS and database connection options -- both differ between a local
+# container and a managed database, and both fail in ways that look like
+# application bugs.
+# --------------------------------------------------------------------------
+
+
+def test_cors_origins_accept_a_comma_list():
+    """What an operator types into a deployment dashboard."""
+    s = Settings(**prod(cors_origins="https://a.example, https://b.example"))
+    assert s.cors_origin_list == ["https://a.example", "https://b.example"]
+
+
+def test_cors_origins_accept_a_json_list():
+    s = Settings(**prod(cors_origins='["https://a.example","https://b.example"]'))
+    assert s.cors_origin_list == ["https://a.example", "https://b.example"]
+
+
+def test_cors_origins_forgive_a_trailing_slash():
+    """An origin with a trailing slash never matches, and the symptom is a CORS
+    failure that looks like a code bug."""
+    assert Settings(**prod(cors_origins="https://a.example/")).cors_origin_list == [
+        "https://a.example"
+    ]
+
+
+def test_wildcard_cors_is_refused_outside_dev():
+    with pytest.raises(ValidationError, match=r"\*"):
+        Settings(**prod(cors_origins="https://a.example,*"))
+
+
+def test_dev_may_use_a_wildcard():
+    assert "*" in Settings(environment="dev", cors_origins="*").cors_origin_list
+
+
+def test_managed_database_gets_tls_and_no_statement_cache():
+    """A transaction-mode pooler hands each transaction a different backend, so
+    cached prepared statements point at connections that no longer hold them.
+    The symptom is an intermittent failure under load."""
+    args = Settings(**prod()).db_connect_args
+    assert args["ssl"] == "require"
+    assert args["statement_cache_size"] == 0
+
+
+def test_local_dev_keeps_prepared_statements_and_plaintext():
+    assert Settings(environment="dev").db_connect_args == {}

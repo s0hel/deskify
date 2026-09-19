@@ -1,0 +1,6 @@
+.vercel
+
+# Real environment files never get committed...
+.env*
+# ...but the documented template does.
+!.env.example

@@ -29,6 +29,32 @@ import { initials } from "./ui/bits";
 
 const DEMO_EMAIL = "priya@northwind.example";
 
+/**
+ * Sign-in fails for three quite different reasons, and saying "is it running on
+ * :8099?" to someone looking at a deployed URL is worse than saying nothing.
+ *
+ * The 404 case is the one that matters: outside dev the API deliberately does
+ * not mount /auth/dev-sign-in, and real OIDC needs IdP credentials this build
+ * does not have (TDD §17.2, T6). That is a deployment being incomplete, not a
+ * fault to debug.
+ */
+function describeSignInFailure(error: unknown): string {
+  const local = import.meta.env.DEV;
+
+  if (error instanceof ApiError) {
+    if (error.status === 404) {
+      return local
+        ? "Development sign-in is switched off. Is DESKFLOW_ENVIRONMENT=dev set on the API?"
+        : "This deployment has no sign-in configured yet. It needs an identity provider (Google Workspace or Microsoft Entra) before anyone can sign in.";
+    }
+    return `Sign-in failed (${error.code}).`;
+  }
+
+  return local
+    ? "Could not reach the API. Is it running on :8099?"
+    : "Could not reach the API.";
+}
+
 export default function App() {
   const [me, setMe] = useState<Me | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -43,13 +69,7 @@ export default function App() {
   useEffect(() => {
     signIn(DEMO_EMAIL)
       .then(setMe)
-      .catch((e) =>
-        setAuthError(
-          e instanceof ApiError
-            ? `Sign-in failed (${e.code}). Is the API running on :8099?`
-            : "Could not reach the API. Is it running on :8099?",
-        ),
-      );
+      .catch((e) => setAuthError(describeSignInFailure(e)));
   }, []);
 
   const signedIn = me !== null;

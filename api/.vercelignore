@@ -1,0 +1,13 @@
+# Only the application and its entrypoint belong in the function bundle.
+tests/
+alembic/
+alembic.ini
+.venv/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+.env
+.env.prod
+.env.example
+uv.lock
+pyproject.toml

@@ -15,6 +15,7 @@ land in logs and crash reporters; an error that helpfully echoes the password it
 rejected has leaked it somewhere worse than the config file.
 """
 
+import json
 from typing import Literal
 
 from pydantic import model_validator
@@ -48,21 +49,63 @@ class Settings(BaseSettings):
     database_url: str = DEV_DATABASE_URL
     jwt_secret: str = DEV_JWT_SECRET
     access_token_ttl_seconds: int = 600
+    #: Small by default: a managed pooler does the real pooling, and a
+    #: serverless function that holds ten handles it never reuses just starves
+    #: the pool for everyone else.
+    db_pool_size: int = 5
     environment: Literal["dev", "staging", "prod"] = "prod"
 
     #: The client is cross-origin by construction: a Capacitor build runs on
     #: capacitor://localhost and calls an absolute API URL, so CORS is part of
     #: the architecture rather than a dev convenience (TDD §6.3).
-    cors_origins: list[str] = [
-        "http://localhost:5173",
-        "http://localhost:4173",
-        "capacitor://localhost",
-        "http://localhost",
-    ]
+    #:
+    #: Held as a STRING and parsed by `cors_origin_list`. A list-typed setting
+    #: is JSON-decoded by pydantic-settings inside the env source, before any
+    #: validator can normalise it -- so a dashboard value of `a,b` fails at
+    #: import with an unreadable JSONDecodeError. A string accepts both forms.
+    cors_origins: str = (
+        "http://localhost:5173,http://localhost:4173,capacitor://localhost,http://localhost"
+    )
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        """Accepts `a,b` and `["a","b"]`; whitespace and trailing slashes are
+        forgiven, because an origin with a trailing slash never matches and the
+        symptom is a CORS failure that looks like a code bug."""
+        text = self.cors_origins.strip()
+        if text.startswith("["):
+            parsed = json.loads(text)
+        else:
+            parsed = text.split(",")
+        return [p.strip().rstrip("/") for p in parsed if str(p).strip()]
 
     @property
     def is_dev(self) -> bool:
         return self.environment == "dev"
+
+    @property
+    def db_connect_args(self) -> dict:
+        """asyncpg options that differ between a local container and a managed
+        Postgres behind a connection pooler.
+
+        Outside dev we assume a pooler, because every managed provider puts one
+        in front by default:
+
+        - `statement_cache_size=0`. A transaction-mode pooler hands each
+          transaction a different backend, so asyncpg's prepared statements are
+          cached against connections that no longer hold them. The symptom is an
+          intermittent "prepared statement does not exist" under load, which is
+          a miserable thing to debug in production and free to avoid here.
+        - `ssl="require"`. A managed database is reached over the public
+          internet; PRD §9.3 requires TLS in transit and providers enforce it
+          anyway.
+
+        Local dev keeps prepared statements and plaintext to a container on
+        localhost.
+        """
+        if self.is_dev:
+            return {}
+        return {"statement_cache_size": 0, "ssl": "require"}
 
     @model_validator(mode="after")
     def _refuse_weak_signing_key_outside_dev(self) -> "Settings":
@@ -144,7 +187,7 @@ class Settings(BaseSettings):
         if self.is_dev:
             return self
 
-        if "*" in self.cors_origins:
+        if "*" in self.cors_origin_list:
             raise ValueError(
                 f"DESKFLOW_CORS_ORIGINS contains '*' while "
                 f"DESKFLOW_ENVIRONMENT={self.environment!r}. List the exact origins "

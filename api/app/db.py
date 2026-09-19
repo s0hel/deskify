@@ -4,7 +4,17 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.config import settings
 
-engine = create_async_engine(settings.database_url, pool_pre_ping=True)
+engine = create_async_engine(
+    settings.database_url,
+    pool_pre_ping=True,
+    # Serverless invocations are short-lived and a managed pooler is doing the
+    # real pooling, so hold few connections and recycle them quickly rather
+    # than sitting on handles a frozen function will never reuse.
+    pool_size=settings.db_pool_size,
+    max_overflow=0,
+    pool_recycle=300,
+    connect_args=settings.db_connect_args,
+)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 

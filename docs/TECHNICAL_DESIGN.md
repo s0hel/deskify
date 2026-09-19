@@ -1179,6 +1179,49 @@ rules protect it:
 This is a full stack per region, deliberately. Cross-region reads are the thing that makes residency
 claims false.
 
+### 14.5 Deployed on Vercel — what that costs
+
+Deployed 2026-09-19. Two Vercel projects, one managed Postgres.
+
+| Piece | Where |
+|---|---|
+| API | Vercel Python function, `api/index.py`, single ASGI entrypoint |
+| Web | Vercel static build of the Vite bundle |
+| Database | Prisma Postgres (`pooled.db.prisma.io`), Postgres 17 |
+
+The client is cross-origin by construction (§6.3), so two projects is the natural shape
+rather than a compromise: the web build carries `VITE_API_URL`, and the API allows exactly
+the origins it is told about.
+
+**Three things this hosting choice changes, and they are not small:**
+
+1. **There is no worker.** §12.1 specifies a process that drains the job table; §12.2
+   lists what it drains — check-in reminders, the auto-release sweep, completion, capacity
+   reconciliation, rollups, retention purge. A serverless function cannot host any of it.
+   Nothing regresses today because the worker was never built, but **auto-release (FR-4.4)
+   cannot ship on this hosting without either Vercel Cron hitting an authenticated sweep
+   endpoint, or a worker running somewhere else.** That decision belongs before Phase 2,
+   not after.
+2. **Connections go through a pooler**, so asyncpg runs with `statement_cache_size=0` and
+   `ssl="require"` outside dev (`Settings.db_connect_args`). A transaction-mode pooler
+   hands each transaction a different backend, and cached prepared statements then point
+   at connections that no longer hold them — an intermittent failure under load, which is
+   the worst kind to debug in production. The pool is deliberately small: the pooler does
+   the real pooling, and a frozen function holding handles it will never reuse starves
+   everyone else.
+3. **Migrations do not run on deploy.** Alembic is excluded from the function bundle, so
+   `alembic upgrade head` is run against the production URL from a machine that has it.
+   That is fine at this size and wrong at a larger one; it should become a pipeline step
+   before anyone else can deploy.
+
+**The deployment cannot be signed into.** `/auth/dev-sign-in` is not mounted outside dev
+(§15.4), real OIDC needs IdP credentials (T6), and the magic-link fallback (FR-1.2) is
+specified but unbuilt. The infrastructure is verified end to end — the API reaches the
+database, CORS admits exactly the web origin and nothing else, the guards hold — but no
+human can log in until T6 closes. Setting `DESKFLOW_ENVIRONMENT=dev` on the deployment
+would "fix" this by putting an unauthenticated token minter on a public URL; that is not a
+shortcut, it is the exact failure §15.4 exists to prevent.
+
 ### 14.4 Mobile build and release
 
 GitHub Actions with a macOS runner plus fastlane; no managed equivalent to EAS Build exists here
@@ -1363,6 +1406,8 @@ measured retroactively.
 | D20 | A hidden colleague is 404, not 403 | §15.5 — 403 confirms they exist and have hidden themselves |
 | D21 | The team week grid is forward-only | §13.2.1 — a backwards grid is an attendance record, not a coordination tool |
 | D22 | Team member counts include only visible members | §15.5 — counting hidden people lets a viewer infer that someone is hidden |
+| D23 | Migrations create only the tables of their own revision | §14.5 — `create_all()` reads today's models, so a migration stops being a snapshot |
+| D24 | asyncpg runs without a statement cache outside dev | §14.5 — a transaction-mode pooler invalidates prepared statements |
 | D2 | `site_id` + `local_date` denormalized onto `booking` | §3.4 — serves the single timezone rule |
 | D3 | `jsonb` attributes + GIN, not an EAV table | §3.2 — open-ended filters, no join on the hot path |
 | D4 | Backend-for-frontend OIDC | §6.1 — secrets server-side, one token format, SAML later is server-only |
@@ -1383,7 +1428,8 @@ measured retroactively.
 | T2 | Transactional email provider | FR-7.2, and the EU residency story in §14.3 | Phase 0 |
 | T3 | Container host | §14.1 — the design is deliberately portable, but one must be picked | Phase 0 |
 | T4 | Does the design partner set a site capacity cap below desk count? | Whether §4.2's counter is on the common path or a rarity | Design partner, week one |
-| T6 | Google Workspace / Entra client credentials | The `/auth/start` → `/auth/callback` leg; the skeleton stands in a dev provider for it | Phase 0 |
+| T6 | Google Workspace / Entra client credentials | The `/auth/start` → `/auth/callback` leg; the skeleton stands in a dev provider for it. **Now blocking: the Vercel deployment cannot be signed into without it (§14.5)** | Phase 0 |
+| T7 | Where does the background worker run? | FR-4.4 auto-release and every sweep in §12.2. Vercel Cron against an authenticated endpoint, or a worker host | Before Phase 2 |
 | T5 | Recurrence model for FR-2.7 (P1) — materialize bookings up front, or expand lazily? | Phase 3 | Deferred |
 
 ### 17.3 Known limitations, stated rather than hidden
