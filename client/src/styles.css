@@ -1,0 +1,38 @@
+:root {
+  --desk-free: #2f9e6f;
+  --desk-booked: #9aa3ab;
+  --desk-mine: #2563eb;
+  --desk-unavailable: #d1d5db;
+  --desk-assigned: #b45309;
+  --bg: #ffffff;
+  --fg: #14181d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #14181d; --fg: #eef1f4; }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.4 system-ui, sans-serif;
+  /* Webview housekeeping (PRD §8.1.2 condition 5). */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+  min-height: 100dvh;
+}
+
+.floorplan { width: 100%; height: 70dvh; overflow: hidden; }
+
+/* Desk colour is CSS, so a state change is a class swap, never a re-render. */
+.desk { fill: var(--desk-free); }
+.desk--booked { fill: var(--desk-booked); }
+.desk--mine { fill: var(--desk-mine); }
+.desk--unavailable { fill: var(--desk-unavailable); }
+.desk--assigned { fill: var(--desk-assigned); }
+
+/* The scanning screen makes the webview transparent so the native camera
+   preview behind it shows through (TDD §10.2). */
+body.scanner-active,
+body.scanner-active #root { background: transparent !important; }

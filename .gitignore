@@ -1,0 +1,18 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.local
+node_modules/
+dist/
+.DS_Store
+client/ios/
+client/android/
+.pytest_cache/
+.ruff_cache/
+
+# editor
+.idea/
+
+# build artifacts
+client/tsconfig.tsbuildinfo
