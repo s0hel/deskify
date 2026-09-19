@@ -1,5 +1,6 @@
 import structlog
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.errors import DeskflowError, handle
@@ -14,6 +15,15 @@ app = FastAPI(
     version="0.1.0",
     description="Phase 0 skeleton. See docs/TECHNICAL_DESIGN.md.",
 )
+# Explicit origins, never a wildcard -- settings refuse one outside dev.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["authorization", "content-type", "idempotency-key"],
+)
+
 app.add_exception_handler(DeskflowError, handle)
 app.include_router(auth.router)
 app.include_router(core.router)

@@ -11,7 +11,7 @@ import type { Desk, DeskState } from "./FloorPlan";
 const LABEL: Record<DeskState, string> = {
   free: "Available",
   booked: "Booked by someone else",
-  mine: "Your booking",
+  mine: "Your booking — tap to cancel",
   unavailable: "Out of service",
   assigned: "Assigned to another person",
 };
@@ -29,13 +29,15 @@ export function DeskList({
     <ul className="desk-list" aria-label="Desks on this floor">
       {desks.map((d) => {
         const state = states[d.id] ?? "free";
-        const bookable = state === "free";
+        // Your own booking is actionable too -- tapping it cancels. Keeping
+        // this in step with the plan is what the equivalence test checks.
+        const actionable = state === "free" || state === "mine";
         return (
           <li key={d.id}>
             <button
               type="button"
               data-resource-id={d.id}
-              disabled={!bookable}
+              disabled={!actionable}
               onClick={() => onSelect?.(d.id)}
               aria-label={`${d.name}. ${LABEL[state]}`}
             >

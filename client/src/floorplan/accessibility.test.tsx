@@ -47,20 +47,39 @@ describe("plan and list equivalence", () => {
     );
   });
 
-  it("every desk bookable on the plan is bookable in the list", () => {
+  it("every resource actionable on the plan is actionable in the list", () => {
     const list = render(<DeskList desks={desks} states={states} />);
-    const bookableOnPlan = desks.filter((d) => states[d.id] === "free").map((d) => d.id);
+    // Tapping a free desk books it; tapping your own booking cancels it. Both
+    // are actions the plan offers, so both must exist in the list.
+    const actionableOnPlan = desks
+      .filter((d) => states[d.id] === "free" || states[d.id] === "mine")
+      .map((d) => d.id);
 
-    for (const id of bookableOnPlan) {
+    for (const id of actionableOnPlan) {
       const btn = list.container.querySelector<HTMLButtonElement>(
         `button[data-resource-id="${id}"]`,
       );
       expect(btn, `${id} missing from the list`).toBeTruthy();
-      expect(btn!.disabled, `${id} bookable on the plan but disabled in the list`).toBe(
+      expect(btn!.disabled, `${id} actionable on the plan but disabled in the list`).toBe(
         false,
       );
     }
-    expect(bookableOnPlan.length).toBeGreaterThan(0);
+    expect(actionableOnPlan.length).toBeGreaterThan(0);
+  });
+
+  it("offers no action for a resource the plan cannot act on either", () => {
+    const list = render(<DeskList desks={desks} states={states} />);
+    const inert = desks
+      .filter((d) => ["booked", "unavailable", "assigned"].includes(states[d.id]))
+      .map((d) => d.id);
+
+    for (const id of inert) {
+      const btn = list.container.querySelector<HTMLButtonElement>(
+        `button[data-resource-id="${id}"]`,
+      );
+      expect(btn!.disabled, `${id} is inert on the plan but enabled in the list`).toBe(true);
+    }
+    expect(inert.length).toBeGreaterThan(0);
   });
 
   it("gives every control a screen-reader label carrying its state", () => {

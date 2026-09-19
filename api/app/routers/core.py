@@ -94,6 +94,24 @@ async def get_site(site_id: uuid.UUID, repo: Repo) -> Site:
     return site
 
 
+class FloorSummaryOut(BaseModel):
+    """Floors without their resources -- the picker needs names, not 300 desks."""
+
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    name: str
+    ordinal: int
+
+
+@router.get("/sites/{site_id}/floors", response_model=list[FloorSummaryOut])
+async def list_floors(site_id: uuid.UUID, repo: Repo) -> list[Floor]:
+    site = await repo.get(Site, site_id)
+    if site is None:
+        raise NotFound("site")
+    floors = await repo.list(Floor, Floor.site_id == site.id)
+    return sorted(floors, key=lambda f: f.ordinal)
+
+
 @router.get("/floors/{floor_id}", response_model=FloorOut)
 async def get_floor(floor_id: uuid.UUID, repo: Repo) -> FloorOut:
     floor = await repo.get(Floor, floor_id)

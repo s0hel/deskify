@@ -144,8 +144,15 @@ def test_refuses_an_unparseable_url():
 
 
 def test_dev_may_use_the_default_database_url():
-    """Otherwise every contributor needs real credentials to run the suite."""
-    assert Settings(environment="dev").database_url == DEV_DATABASE_URL
+    """Otherwise every contributor needs real credentials to run the suite.
+
+    Passed explicitly because conftest points DESKFLOW_DATABASE_URL at the
+    separate test database -- the property under test is that dev ACCEPTS the
+    published default, not what happens to be in the environment."""
+    assert (
+        Settings(environment="dev", database_url=DEV_DATABASE_URL).database_url
+        == DEV_DATABASE_URL
+    )
 
 
 def test_localhost_is_not_itself_rejected():

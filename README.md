@@ -11,11 +11,17 @@ Flex workspace booking. See [docs/PRD.md](docs/PRD.md) and
 
 ```bash
 make seed     # Postgres + migrations + a 300-desk demo tenant
-make api      # http://localhost:8099  (/docs for OpenAPI)
+make api      # API  -> http://localhost:8099  (/docs for OpenAPI)
+make web      # app  -> http://localhost:5173
 make test     # the full suite, both halves
 ```
 
-Sign in as `priya@northwind.example`.
+The app signs in as `priya@northwind.example` automatically in dev, loads the seeded
+Berlin site, and books against the real API. Tapping a free desk books it; tapping your
+own booking cancels it. Both the plan and the list do this.
+
+Tests run against a **separate** `deskflow_test` database, created and migrated on first
+run, so `make test` never empties the tenant a running app is showing you.
 
 ---
 
@@ -29,6 +35,7 @@ Sign in as `priya@northwind.example`.
 | Tenancy layer + schema-driven cross-tenant harness | Done |
 | Booking write path, concurrency-proven | Done |
 | React + Capacitor client, floor plan, list view | Done |
+| Client wired to the API: sign-in, real floors, booking, cancel | Done |
 | Generated TypeScript client | Done — `client/src/api/schema.d.ts` |
 | OIDC end to end for one IdP | **Blocked on IdP credentials** (T6) |
 | 300-desk floor-plan spike on device | **Harness ready, gate not yet run on hardware** |

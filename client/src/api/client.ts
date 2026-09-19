@@ -27,6 +27,23 @@ export const setAccessToken = (t: string | null) => {
   accessToken = t;
 };
 
+/**
+ * A production bundle with no API URL would silently call localhost -- which in
+ * a Capacitor binary means calling the phone itself. Fail loudly at startup
+ * instead, matching the server's fail-closed posture.
+ */
+function baseUrl(): string {
+  const configured = import.meta.env.VITE_API_URL;
+  if (configured) return configured.replace(/\/$/, "");
+  if (import.meta.env.PROD) {
+    throw new Error(
+      "VITE_API_URL is not set. A production build must be told where the API is; " +
+        "it cannot fall back to localhost.",
+    );
+  }
+  return "http://localhost:8099";
+}
+
 export async function api<T>(
   path: string,
   init: RequestInit & { idempotencyKey?: string } = {},
@@ -38,10 +55,7 @@ export async function api<T>(
   // across reconnects carries one key (TDD §11.3).
   if (init.idempotencyKey) headers.set("idempotency-key", init.idempotencyKey);
 
-  const res = await fetch(`${import.meta.env.VITE_API_URL ?? ""}${path}`, {
-    ...init,
-    headers,
-  });
+  const res = await fetch(`${baseUrl()}${path}`, { ...init, headers });
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

@@ -1,4 +1,4 @@
-.PHONY: up down migrate seed api test test-api test-client build spike gen-api lint
+.PHONY: up down migrate seed api web test test-api test-client build spike gen-api lint
 
 # Settings fail closed: environment defaults to "prod", which refuses the
 # development signing key and disables /auth/dev-sign-in. Local targets opt in.
@@ -18,6 +18,9 @@ seed: migrate
 
 api: migrate
 	cd api && uv run uvicorn app.main:app --reload --port 8099
+
+web:               ## the app, against a local API on :8099
+	cd client && npm run dev
 
 test: test-api test-client
 

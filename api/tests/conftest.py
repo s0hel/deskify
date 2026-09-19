@@ -11,6 +11,15 @@ import os
 
 os.environ.setdefault("DESKFLOW_ENVIRONMENT", "dev")
 
+# The suite TRUNCATES every table between tests, so it must never point at the
+# database you are developing against. Running `make test` should not silently
+# empty the seeded demo tenant out from under a running app.
+TEST_DB_NAME = "deskflow_test"
+os.environ["DESKFLOW_DATABASE_URL"] = os.environ.get(
+    "DESKFLOW_TEST_DATABASE_URL",
+    f"postgresql+asyncpg://deskflow:deskflow@localhost:55432/{TEST_DB_NAME}",
+)
+
 from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
@@ -33,6 +42,41 @@ def new_engine():
     # NullPool: each test owns its connections, so nothing is shared across
     # event loops.
     return create_async_engine(settings.database_url, poolclass=NullPool)
+
+
+def pytest_configure(config):
+    """Session setup: ensure deskflow_test exists and is migrated."""
+    import asyncio
+    import subprocess
+    import sys
+
+    async def ensure() -> bool:
+        import asyncpg
+
+        admin = await asyncpg.connect(
+            user="deskflow", password="deskflow", host="localhost",
+            port=55432, database="postgres",
+        )
+        try:
+            exists = await admin.fetchval(
+                "SELECT 1 FROM pg_database WHERE datname = $1", TEST_DB_NAME
+            )
+            if not exists:
+                # CREATE DATABASE cannot run inside a transaction block.
+                await admin.execute(f'CREATE DATABASE "{TEST_DB_NAME}"')
+            return not exists
+        finally:
+            await admin.close()
+
+    created = asyncio.run(ensure())
+    if created:
+        subprocess.run(
+            [sys.executable, "-m", "alembic", "upgrade", "head"],
+            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            env={**os.environ},
+            check=True,
+            capture_output=True,
+        )
 
 
 @pytest_asyncio.fixture

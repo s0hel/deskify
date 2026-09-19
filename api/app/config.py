@@ -50,6 +50,16 @@ class Settings(BaseSettings):
     access_token_ttl_seconds: int = 600
     environment: Literal["dev", "staging", "prod"] = "prod"
 
+    #: The client is cross-origin by construction: a Capacitor build runs on
+    #: capacitor://localhost and calls an absolute API URL, so CORS is part of
+    #: the architecture rather than a dev convenience (TDD §6.3).
+    cors_origins: list[str] = [
+        "http://localhost:5173",
+        "http://localhost:4173",
+        "capacitor://localhost",
+        "http://localhost",
+    ]
+
     @property
     def is_dev(self) -> bool:
         return self.environment == "dev"
@@ -122,6 +132,23 @@ class Settings(BaseSettings):
             raise ValueError(
                 f"The DESKFLOW_DATABASE_URL password is {len(url.password)} characters; "
                 f"at least {MIN_DB_PASSWORD_LENGTH} are required outside dev. {hint}"
+            )
+
+        return self
+
+    @model_validator(mode="after")
+    def _refuse_wildcard_cors_outside_dev(self) -> "Settings":
+        """Same reasoning as the guards above. `*` with credentials is rejected
+        by browsers anyway; `*` without them still invites any origin to read
+        responses, which for presence data is a disclosure."""
+        if self.is_dev:
+            return self
+
+        if "*" in self.cors_origins:
+            raise ValueError(
+                f"DESKFLOW_CORS_ORIGINS contains '*' while "
+                f"DESKFLOW_ENVIRONMENT={self.environment!r}. List the exact origins "
+                f"the client is served from."
             )
 
         return self
