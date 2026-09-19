@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "app.deskflow.client",
-  appName: "deskflow",
+  appId: "app.deskify.client",
+  appName: "Deskify",
   webDir: "dist",
   // NO `server.url`. The bundle ships INSIDE the binary: that is what makes
   // offline work (FR-10.1) and keeps us clear of App Store guideline 4.2
