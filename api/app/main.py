@@ -29,12 +29,26 @@ app.include_router(auth.router)
 app.include_router(core.router)
 app.include_router(people.router)
 
-# /auth/dev-sign-in mints a token for any user from an email alone. It is
-# mounted only in dev, so in every other environment the route genuinely does
-# not exist rather than existing and refusing. Settings default to prod, so an
-# unconfigured deployment lands here (app/config.py).
-if settings.is_dev:
+# /auth/dev-sign-in issues a valid token for any known email with no
+# credential, so it is mounted only where it has been asked for: in dev, or
+# where DESKFLOW_ALLOW_DEV_SIGN_IN was set deliberately. Everywhere else the
+# route genuinely does not exist rather than existing and refusing, and an
+# unconfigured deployment lands there by default (app/config.py).
+if settings.dev_sign_in_enabled:
     app.include_router(auth.dev_router)
+
+if settings.dev_sign_in_is_exposed:
+    # Loud, once, on every cold start. Someone reading these logs months from
+    # now should not have to infer this from a config diff.
+    structlog.get_logger().warning(
+        "dev_sign_in_exposed",
+        environment=settings.environment,
+        detail=(
+            "/auth/dev-sign-in is mounted outside dev. It issues a valid token "
+            "for any known email with no credential, so anyone who can reach "
+            "this API can sign in as any user in it."
+        ),
+    )
 
 
 @app.get("/health", tags=["ops"])

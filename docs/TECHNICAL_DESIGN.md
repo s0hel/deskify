@@ -1214,13 +1214,26 @@ the origins it is told about.
    That is fine at this size and wrong at a larger one; it should become a pipeline step
    before anyone else can deploy.
 
-**The deployment cannot be signed into.** `/auth/dev-sign-in` is not mounted outside dev
-(§15.4), real OIDC needs IdP credentials (T6), and the magic-link fallback (FR-1.2) is
-specified but unbuilt. The infrastructure is verified end to end — the API reaches the
-database, CORS admits exactly the web origin and nothing else, the guards hold — but no
-human can log in until T6 closes. Setting `DESKFLOW_ENVIRONMENT=dev` on the deployment
-would "fix" this by putting an unauthenticated token minter on a public URL; that is not a
-shortcut, it is the exact failure §15.4 exists to prevent.
+**The deployment runs on development sign-in, deliberately.** Real OIDC needs IdP
+credentials (T6) and the magic-link fallback (FR-1.2) is unbuilt, so there was no way to
+log in at all. Rather than leave it unusable, the deployment sets
+`DESKFLOW_ALLOW_DEV_SIGN_IN=true`.
+
+That decision is recorded here rather than left in a dashboard, because it is a real one:
+`/auth/dev-sign-in` issues a valid token for any known email with no credential, so anyone
+who can reach the API can sign in as anyone in it. It is acceptable while the database
+holds invented demo data and unacceptable the moment it holds a real employee's name. The
+API logs `dev_sign_in_exposed` at warning level on every cold start so this is visible in
+the logs and not only in a config diff.
+
+**The switch is deliberately separate from `environment`.** The obvious way to get this —
+setting `DESKFLOW_ENVIRONMENT=dev` — would also drop `ssl="require"` and re-enable
+asyncpg's statement cache (§14.5 item 2), breaking the managed pooler while granting far
+more than intended. One switch, one effect, one name that says what it does.
+`test_the_switch_does_not_relax_the_database_settings` asserts the separation, and the
+default-off case is still asserted by
+`test_dev_sign_in_does_not_exist_outside_dev_by_default` — an operator who forgets a
+variable still gets the locked-down path.
 
 ### 14.4 Mobile build and release
 
@@ -1408,6 +1421,7 @@ measured retroactively.
 | D22 | Team member counts include only visible members | §15.5 — counting hidden people lets a viewer infer that someone is hidden |
 | D23 | Migrations create only the tables of their own revision | §14.5 — `create_all()` reads today's models, so a migration stops being a snapshot |
 | D24 | asyncpg runs without a statement cache outside dev | §14.5 — a transaction-mode pooler invalidates prepared statements |
+| D25 | Dev sign-in has its own switch, not `environment=dev` | §14.5 — the blunt flip also breaks TLS and the pooler, and grants more than intended |
 | D2 | `site_id` + `local_date` denormalized onto `booking` | §3.4 — serves the single timezone rule |
 | D3 | `jsonb` attributes + GIN, not an EAV table | §3.2 — open-ended filters, no join on the hot path |
 | D4 | Backend-for-frontend OIDC | §6.1 — secrets server-side, one token format, SAML later is server-only |

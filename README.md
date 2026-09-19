@@ -63,12 +63,16 @@ verified and running.
 curl https://deskify-api-pi.vercel.app/health
 ```
 
-**It cannot be signed into yet.** `/auth/dev-sign-in` is deliberately not mounted outside
-dev, real OIDC needs Google or Entra credentials, and the magic-link fallback is specified
-but unbuilt. The infrastructure is verified — the API reaches the database, CORS admits
-only the web origin — but nobody can log in until an identity provider is configured.
-Setting `DESKFLOW_ENVIRONMENT=dev` on the deployment would put an unauthenticated token
-minter on a public URL; don't.
+**Sign-in on this deployment is the development one.** Real OIDC needs Google or Entra
+credentials (T6) and the magic-link fallback is unbuilt, so the deployment runs with
+`DESKFLOW_ALLOW_DEV_SIGN_IN=true`: `/auth/dev-sign-in` issues a valid token for any seeded
+email with no credential. That is a deliberate choice for a demo carrying invented data,
+and it is one variable to unset before real names go in.
+
+Use the dedicated switch, never `DESKFLOW_ENVIRONMENT=dev`. The environment also selects
+the database connection options — dev drops `ssl="require"` and re-enables asyncpg's
+statement cache, which breaks the managed pooler. The narrow switch does one thing, and
+`test_the_switch_does_not_relax_the_database_settings` holds that line.
 
 **There is also no background worker**, so the auto-release sweep (FR-4.4) and the other
 scheduled jobs have nowhere to run. See TDD §14.5 and open question T7.

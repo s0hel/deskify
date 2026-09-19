@@ -56,9 +56,10 @@ class TokenResponse(BaseModel):
     expires_in: int
 
 
-#: Registered onto the app ONLY in dev (see app/main.py). This endpoint mints a
-#: token for any user given nothing but an email address, so "exists but
-#: refuses" is not good enough -- outside dev the route must not exist at all.
+#: Registered onto the app only where dev sign-in is enabled (see app/main.py).
+#: This endpoint mints a token for any user given nothing but an email address,
+#: so "exists but refuses" is not good enough -- where it is not wanted, the
+#: route must not exist at all.
 dev_router = APIRouter(prefix="/auth", tags=["auth"])
 
 
@@ -72,9 +73,10 @@ async def dev_sign_in(
     redemption path is the real one and does not change when the real IdP
     arrives.
     """
-    # Defence in depth: main.py should never have mounted this outside dev.
-    if not settings.is_dev:
-        raise DeskflowError("dev sign-in is disabled outside dev")
+    # Defence in depth: main.py should not have mounted this at all unless it
+    # was asked for.
+    if not settings.dev_sign_in_enabled:
+        raise DeskflowError("dev sign-in is not enabled")
     user = (
         await session.execute(select(AppUser).where(AppUser.email == body.email))
     ).scalar_one_or_none()

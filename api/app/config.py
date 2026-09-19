@@ -55,6 +55,17 @@ class Settings(BaseSettings):
     db_pool_size: int = 5
     environment: Literal["dev", "staging", "prod"] = "prod"
 
+    #: Mounts /auth/dev-sign-in outside dev. That endpoint issues a valid token
+    #: for any known email with no credential, so an API with this on is an API
+    #: anyone who can reach it can sign into as anyone in it.
+    #:
+    #: Deliberately SEPARATE from `environment`. Setting the environment to
+    #: "dev" to get this would also turn off TLS and re-enable asyncpg's
+    #: statement cache (see db_connect_args), which breaks a managed pooler --
+    #: so the blunt switch both over-reaches and fails. This one does exactly
+    #: one thing, and its name says which.
+    allow_dev_sign_in: bool = False
+
     #: The client is cross-origin by construction: a Capacitor build runs on
     #: capacitor://localhost and calls an absolute API URL, so CORS is part of
     #: the architecture rather than a dev convenience (TDD §6.3).
@@ -66,6 +77,16 @@ class Settings(BaseSettings):
     cors_origins: str = (
         "http://localhost:5173,http://localhost:4173,capacitor://localhost,http://localhost"
     )
+
+    @property
+    def dev_sign_in_enabled(self) -> bool:
+        """True in dev, or anywhere it has been switched on deliberately."""
+        return self.is_dev or self.allow_dev_sign_in
+
+    @property
+    def dev_sign_in_is_exposed(self) -> bool:
+        """On, and reachable by people other than the developer who set it."""
+        return self.allow_dev_sign_in and not self.is_dev
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -82,7 +82,9 @@ def test_dev_sign_in_is_reachable_in_dev():
 
 
 @pytest.mark.parametrize("env", ["prod", "staging"])
-def test_dev_sign_in_does_not_exist_outside_dev(env):
+def test_dev_sign_in_does_not_exist_outside_dev_by_default(env):
+    """The default must stay off. It can be switched on (see below), but never
+    by forgetting a variable."""
     result = probe({"DESKFLOW_ENVIRONMENT": env, **PROD_ENV})
     assert result.returncode == 0, result.stderr[-800:]
     body = json.loads(result.stdout.strip().splitlines()[-1])
@@ -92,6 +94,62 @@ def test_dev_sign_in_does_not_exist_outside_dev(env):
     # Anything but 404 proves that -- this probe has no database, so the
     # handler is expected to run and then fail.
     assert body["discover"] != 404, body
+
+
+@pytest.mark.parametrize("env", ["prod", "staging"])
+def test_the_explicit_switch_mounts_it_outside_dev(env):
+    """DESKFLOW_ALLOW_DEV_SIGN_IN is the only way to get this outside dev.
+
+    It exists because the alternative people reach for -- setting
+    DESKFLOW_ENVIRONMENT=dev -- also disables TLS and re-enables asyncpg's
+    statement cache, so it breaks a managed database while granting far more
+    than was intended. One switch, one effect, one name that says what it does.
+    """
+    result = probe(
+        {"DESKFLOW_ENVIRONMENT": env, "DESKFLOW_ALLOW_DEV_SIGN_IN": "true", **PROD_ENV}
+    )
+    assert result.returncode == 0, result.stderr[-800:]
+    body = json.loads(result.stdout.strip().splitlines()[-1])
+    assert body["environment"] == env
+    # Anything but 404 proves the route is mounted. This probe has no reachable
+    # database (PROD_ENV points at db.invalid), so the handler is expected to
+    # run and then fail looking the user up -- which is still proof it ran.
+    assert body["dev_sign_in"] != 404, f"the switch did not mount the route in {env}: {body}"
+
+
+@pytest.mark.parametrize("env", ["prod", "staging"])
+def test_the_switch_does_not_relax_the_database_settings(env):
+    """Turning on dev sign-in must not quietly drop TLS or re-enable the
+    statement cache -- the failure mode of the blunt alternative."""
+    from app.config import Settings
+
+    s = Settings(
+        environment=env,
+        allow_dev_sign_in=True,
+        jwt_secret=REAL_SECRET,
+        database_url=REAL_DB_URL,
+    )
+    assert s.dev_sign_in_enabled is True
+    assert s.dev_sign_in_is_exposed is True
+    assert s.db_connect_args == {"statement_cache_size": 0, "ssl": "require"}
+
+
+def test_the_switch_is_off_unless_asked_for():
+    from app.config import Settings
+
+    s = Settings(environment="prod", jwt_secret=REAL_SECRET, database_url=REAL_DB_URL)
+    assert s.allow_dev_sign_in is False
+    assert s.dev_sign_in_enabled is False
+    assert s.dev_sign_in_is_exposed is False
+
+
+def test_dev_is_not_reported_as_exposed():
+    """In dev it is expected, so it must not trip the warning that is meant to
+    mean 'someone did this to a deployment'."""
+    from app.config import Settings
+
+    assert Settings(environment="dev").dev_sign_in_enabled is True
+    assert Settings(environment="dev").dev_sign_in_is_exposed is False
 
 
 def test_app_refuses_to_import_with_the_default_secret_outside_dev():
