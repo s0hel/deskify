@@ -27,15 +27,25 @@ const props = (n: number, states: Record<string, DeskState> = {}) => ({
 });
 
 describe("FloorPlan", () => {
-  it("renders one rect per resource", () => {
+  it("renders one circle per resource", () => {
     const { container } = render(<FloorPlan {...props(300)} />);
-    expect(container.querySelectorAll("rect.desk")).toHaveLength(300);
+    expect(container.querySelectorAll("circle.desk")).toHaveLength(300);
   });
 
-  it("keeps the node count low by hiding labels when zoomed out", () => {
-    const { container } = render(<FloorPlan {...props(300)} />);
-    // 300 rects, no <text>: labels cost more than the rects they annotate.
+  it("hides labels on a plan far wider than the view", () => {
+    // 300 <text> nodes cost more than the circles they annotate, so they only
+    // appear once the view is narrow enough for them to be legible.
+    const { container } = render(
+      <FloorPlan {...props(300)} planWidth={40000} planHeight={25000} />,
+    );
     expect(container.querySelectorAll("text")).toHaveLength(0);
+  });
+
+  it("shows labels at the default phone zoom, where they are legible", () => {
+    // The plan opens covered rather than letterboxed, which on a phone means
+    // roughly a third of the plan width -- close enough to read desk names.
+    const { container } = render(<FloorPlan {...props(300)} />);
+    expect(container.querySelectorAll("text").length).toBeGreaterThan(0);
   });
 
   it("marks the svg aria-hidden because the list is the accessible path", () => {
@@ -47,17 +57,17 @@ describe("FloorPlan", () => {
     const { container } = render(
       <FloorPlan {...props(3, { d1: "mine", d2: "unavailable" })} />,
     );
-    expect(container.querySelector('[data-resource-id="d1"]')?.getAttribute("class"))
+    expect(container.querySelector('.desks [data-resource-id="d1"]')?.getAttribute("class"))
       .toBe("desk desk--mine");
-    expect(container.querySelector('[data-resource-id="d2"]')?.getAttribute("class"))
+    expect(container.querySelector('.desks [data-resource-id="d2"]')?.getAttribute("class"))
       .toBe("desk desk--unavailable");
   });
 
   it("uses ONE delegated click handler, not one per desk", () => {
     const onSelect = vi.fn();
     const { container } = render(<FloorPlan {...props(5)} onSelect={onSelect} />);
-    const rect = container.querySelector('[data-resource-id="d3"]')! as SVGRectElement;
-    rect.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const node = container.querySelector('.desks [data-resource-id="d3"]')! as SVGCircleElement;
+    node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onSelect).toHaveBeenCalledWith("d3");
   });
 
@@ -65,5 +75,23 @@ describe("FloorPlan", () => {
     const { container } = render(<FloorPlan {...props(3)} />);
     expect((container.querySelector(".floorplan") as HTMLElement).style.touchAction)
       .toBe("none");
+  });
+});
+
+describe("your own desk", () => {
+  it("gets a ring so it is findable without reading labels", () => {
+    const { container } = render(<FloorPlan {...props(5, { d2: "mine" })} />);
+    const rings = container.querySelectorAll(".rings circle.desk-ring");
+    expect(rings).toHaveLength(1);
+  });
+
+  it("draws no rings when nothing is yours", () => {
+    const { container } = render(<FloorPlan {...props(5)} />);
+    expect(container.querySelectorAll(".rings circle")).toHaveLength(0);
+  });
+
+  it("keeps the ring layer out of hit testing", () => {
+    const { container } = render(<FloorPlan {...props(5, { d2: "mine" })} />);
+    expect(container.querySelector(".rings")?.getAttribute("pointer-events")).toBe("none");
   });
 });

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends
@@ -14,10 +14,10 @@ from app.booking_service import create_booking
 from app.db import get_session
 from app.deps import Principal, current_principal, tenant_repo
 from app.errors import NotFound
-from app.models import AppUser, Booking, Floor, Resource, Site
+from app.models import AppUser, Booking, DayDeclaration, Floor, Resource, Site
 from app.policy import evaluate
 from app.repository import TenantRepository
-from app.timezone import parse_opening_hours, slot_bounds
+from app.timezone import local_today, parse_opening_hours, slot_bounds
 
 router = APIRouter(tags=["core"])
 
@@ -92,6 +92,86 @@ async def get_site(site_id: uuid.UUID, repo: Repo) -> Site:
     if site is None:
         raise NotFound("site")
     return site
+
+
+class DayOut(BaseModel):
+    """One day in the 7-day strip (FR-2.1)."""
+
+    date: date
+    free: int
+    total: int
+    capacity_cap: int | None
+    my_booking_id: uuid.UUID | None
+    my_resource_name: str | None
+    declaration: str | None
+
+
+@router.get("/sites/{site_id}/days", response_model=list[DayOut])
+async def site_days(site_id: uuid.UUID, repo: Repo, principal: Me, days: int = 7) -> list[DayOut]:
+    """Per-day availability and the user's own booking, for the home strip.
+
+    One query per concept rather than one per day: the client used to need N
+    round trips to colour a week, which is the kind of thing that makes a home
+    screen feel slow on a train.
+    """
+    site = await repo.get(Site, site_id)
+    if site is None:
+        raise NotFound("site")
+
+    start = local_today(site.timezone)
+    window = [start + timedelta(days=i) for i in range(max(1, min(days, 31)))]
+
+    bookable = await repo.list(
+        Resource,
+        Resource.site_id == site.id,
+        Resource.kind == "desk",
+        Resource.status == "active",
+    )
+    total = len(bookable)
+
+    bookings = await repo.list(
+        Booking,
+        Booking.site_id == site.id,
+        Booking.local_date >= window[0],
+        Booking.local_date <= window[-1],
+        Booking.status.notin_(("cancelled", "released_no_show")),
+    )
+    names = {r.id: r.name for r in bookable}
+
+    taken: dict[date, int] = {}
+    mine: dict[date, Booking] = {}
+    for b in bookings:
+        taken[b.local_date] = taken.get(b.local_date, 0) + 1
+        if b.user_id == principal.user_id:
+            mine[b.local_date] = b
+
+    declarations = await repo.list(
+        DayDeclaration,
+        DayDeclaration.user_id == principal.user_id,
+        DayDeclaration.local_date >= window[0],
+        DayDeclaration.local_date <= window[-1],
+    )
+    declared = {d.local_date: d.kind for d in declarations}
+
+    out: list[DayOut] = []
+    for d in window:
+        used = taken.get(d, 0)
+        free = max(0, total - used)
+        if site.capacity_cap is not None:
+            free = min(free, max(0, site.capacity_cap - used))
+        booking = mine.get(d)
+        out.append(
+            DayOut(
+                date=d,
+                free=free,
+                total=total,
+                capacity_cap=site.capacity_cap,
+                my_booking_id=booking.id if booking else None,
+                my_resource_name=names.get(booking.resource_id) if booking else None,
+                declaration=declared.get(d),
+            )
+        )
+    return out
 
 
 class FloorSummaryOut(BaseModel):

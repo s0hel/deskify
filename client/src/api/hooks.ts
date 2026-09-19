@@ -21,6 +21,16 @@ export interface Site {
   check_in_enabled: boolean;
 }
 
+export interface DayAvailability {
+  date: string;
+  free: number;
+  total: number;
+  capacity_cap: number | null;
+  my_booking_id: string | null;
+  my_resource_name: string | null;
+  declaration: string | null;
+}
+
 export interface FloorSummary {
   id: string;
   name: string;
@@ -65,6 +75,7 @@ export interface Booking {
 export const keys = {
   me: ["me"] as const,
   sites: ["sites"] as const,
+  days: (siteId: string) => ["days", siteId] as const,
   floors: (siteId: string) => ["floors", siteId] as const,
   floor: (floorId: string) => ["floor", floorId] as const,
   floorState: (floorId: string, on: string) => ["floorState", floorId, on] as const,
@@ -75,6 +86,21 @@ export function useSites(enabled: boolean) {
     queryKey: keys.sites,
     queryFn: () => api<Site[]>("/sites"),
     enabled,
+  });
+}
+
+/**
+ * The week strip (FR-2.1). One request for seven days, rather than seven.
+ *
+ * It also feeds the refusal sheet's "nearest days with space", which is why it
+ * lives here rather than being derived per screen.
+ */
+export function useDays(siteId: string | undefined) {
+  return useQuery({
+    queryKey: keys.days(siteId ?? ""),
+    queryFn: () => api<DayAvailability[]>(`/sites/${siteId}/days?days=14`),
+    enabled: Boolean(siteId),
+    staleTime: 30 * 1000,
   });
 }
 
@@ -154,6 +180,8 @@ export function useCreateBooking() {
 
     onSettled: (_data, _err, { on, floorId }) => {
       qc.invalidateQueries({ queryKey: keys.floorState(floorId, on) });
+      qc.invalidateQueries({ queryKey: ["days"] });
+      qc.invalidateQueries({ queryKey: ["bookings"] });
     },
   });
 }
@@ -164,6 +192,7 @@ export function useCancelBooking() {
     mutationFn: ({ bookingId }) => api<void>(`/bookings/${bookingId}`, { method: "DELETE" }),
     onSettled: (_d, _e, { on, floorId }) => {
       qc.invalidateQueries({ queryKey: keys.floorState(floorId, on) });
+      qc.invalidateQueries({ queryKey: ["days"] });
       qc.invalidateQueries({ queryKey: ["bookings"] });
     },
   });

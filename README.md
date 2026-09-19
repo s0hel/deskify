@@ -36,6 +36,7 @@ run, so `make test` never empties the tenant a running app is showing you.
 | Booking write path, concurrency-proven | Done |
 | React + Capacitor client, floor plan, list view | Done |
 | Client wired to the API: sign-in, real floors, booking, cancel | Done |
+| Designed UI: tokens, Today hero, week strip, circle plan, bottom sheets | Done |
 | Generated TypeScript client | Done — `client/src/api/schema.d.ts` |
 | OIDC end to end for one IdP | **Blocked on IdP credentials** (T6) |
 | 300-desk floor-plan spike on device | **Harness ready, gate not yet run on hardware** |
@@ -76,6 +77,24 @@ carries the dev defaults. For staging and production, generate real values:
 ```bash
 openssl rand -base64 48
 ```
+
+## Design
+
+Tokens live at the top of `client/src/styles.css` — ground, surface, ink, muted, line,
+accent, clay, and a state colour per resource state. Light is the designed theme; dark
+holds the same hues and inverts only the surfaces.
+
+Two patterns are worth knowing before changing anything:
+
+- **The plan opens covered, not letterboxed.** `coverViewBox` gives the viewBox the
+  *container's* aspect ratio, so the plan fills a tall phone screen and is panned, rather
+  than sitting in a strip with dead space beneath it. Label visibility is judged by
+  rendered pixel size, not a fraction of the plan.
+- **A refusal offers a way forward.** `RefusalSheet` names the problem in plain language,
+  then lists the nearest days that actually have space and lets you jump to one. FR-6.9
+  asks the app to say which rule refused a booking; a refusal that only explains is still
+  a dead end. The machine code sits in small type at the bottom, addressed to support
+  rather than to the person reading it.
 
 ## The tests that matter
 

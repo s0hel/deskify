@@ -1,136 +1,357 @@
+/**
+ * Design tokens.
+ *
+ * Values from the reference design. Light is the designed theme; dark is a
+ * derived counterpart rather than a second design, so the hues are held and
+ * only the surfaces invert.
+ */
+
 :root {
-  --desk-free: #2f9e6f;
-  --desk-booked: #9aa3ab;
-  --desk-mine: #2563eb;
-  --desk-unavailable: #d1d5db;
-  --desk-assigned: #b45309;
-  --bg: #ffffff;
-  --fg: #14181d;
+  --ground: #f5f4f0;
+  --surface: #ffffff;
+  --ink: #16181c;
+  --muted: #70747b;
+  --line: #e7e4dd;
+  --accent: #4340c4;
+  --accent-ink: #ffffff;
+  --clay: #c4622f;
+  --danger: #b8433a;
+
+  /* resource state */
+  --state-free: #1e8f63;
+  --state-taken: #a9adb4;
+  --state-person: #4a5568;
+  --state-yours: #4340c4;
+  --state-zone: #7c6ae8;
+
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-pill: 999px;
+
+  --shadow-card: 0 1px 2px rgb(22 24 28 / 4%), 0 6px 16px rgb(22 24 28 / 6%);
+  --shadow-float: 0 2px 6px rgb(22 24 28 / 10%), 0 10px 28px rgb(22 24 28 / 12%);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #14181d; --fg: #eef1f4; }
+  :root:not([data-theme="light"]) {
+    --ground: #121317;
+    --surface: #1b1d22;
+    --ink: #eef1f4;
+    --muted: #9aa0a8;
+    --line: #2b2e35;
+    --accent: #6f6ce0;
+    --clay: #d97b4a;
+    --danger: #d9615a;
+    --state-taken: #5d636c;
+    --state-person: #8b94a3;
+    --state-yours: #6f6ce0;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 30%), 0 6px 16px rgb(0 0 0 / 35%);
+    --shadow-float: 0 2px 6px rgb(0 0 0 / 40%), 0 10px 28px rgb(0 0 0 / 45%);
+  }
 }
+
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--fg);
-  font: 16px/1.4 system-ui, sans-serif;
-  /* Webview housekeeping (PRD §8.1.2 condition 5). */
-  padding: env(safe-area-inset-top) env(safe-area-inset-right)
-           env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: var(--ground);
+  color: var(--ink);
+  font: 17px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
   min-height: 100dvh;
 }
 
-.floorplan { width: 100%; height: 70dvh; overflow: hidden; }
+/* Webview housekeeping (PRD §8.1.2 condition 5). */
+.safe {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
 
-/* Desk colour is CSS, so a state change is a class swap, never a re-render. */
-.desk { fill: var(--desk-free); }
-.desk--booked { fill: var(--desk-booked); }
-.desk--mine { fill: var(--desk-mine); }
-.desk--unavailable { fill: var(--desk-unavailable); }
-.desk--assigned { fill: var(--desk-assigned); }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+/* ---- typography --------------------------------------------------------- */
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.eyebrow--clay { color: var(--clay); }
+
+.display { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; margin: 2px 0 0; }
+.title { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+.body { font-size: 16px; margin: 0; }
+.meta { font-size: 14px; color: var(--muted); }
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* ---- layout ------------------------------------------------------------- */
+
+/* A DEFINITE height, not a minimum. `flex: 1` and `height: 100%` both need a
+   resolved height to compute against; with min-height the SVG's intrinsic size
+   feeds back into its own parent and the plan grows to thousands of pixels. */
+.app {
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.pad { padding: 0 20px; }
+.stack > * + * { margin-top: 10px; }
+.section { margin-top: 26px; }
+.section > .eyebrow { margin-bottom: 10px; display: block; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px 4px;
+  padding-top: max(12px, env(safe-area-inset-top));
+}
+
+.avatar {
+  width: 38px; height: 38px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  display: grid; place-items: center;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.02em;
+  flex: none;
+}
+
+/* ---- cards -------------------------------------------------------------- */
+
+.card {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-card);
+}
+
+.row-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--surface);
+  border: none;
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+}
+.row-card:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+.chevron { color: var(--muted); flex: none; }
+
+/* ---- buttons ------------------------------------------------------------ */
+
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%;
+  border: none;
+  border-radius: var(--r-pill);
+  padding: 15px 20px;
+  font-size: 17px;
+  font-weight: 600;
+}
+.btn--primary { background: var(--accent); color: var(--accent-ink); }
+/* On a surface the ground colour reads as a button; on the ground itself it
+   disappears, so it carries a hairline too. */
+.btn--quiet {
+  background: var(--ground);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+.btn--danger { background: transparent; color: var(--danger); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---- pills and segmented controls --------------------------------------- */
+
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--surface);
+  border-radius: var(--r-pill);
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: var(--shadow-float);
+  border: none;
+}
+
+.seg {
+  display: inline-flex;
+  background: var(--surface);
+  border-radius: var(--r-pill);
+  padding: 4px;
+  box-shadow: var(--shadow-float);
+}
+.seg button {
+  border: none; background: transparent;
+  border-radius: var(--r-pill);
+  padding: 7px 16px;
+  font-size: 15px; font-weight: 600;
+  color: var(--muted);
+}
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+.tag {
+  display: inline-flex; align-items: center;
+  border-radius: var(--r-pill);
+  padding: 4px 10px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  background: var(--ground);
+  color: var(--muted);
+}
+.tag--free { color: var(--state-free); }
+.tag--yours { color: var(--state-yours); }
+
+/* ---- week strip --------------------------------------------------------- */
+
+.week { display: flex; gap: 8px; overflow-x: auto; padding: 2px 20px 6px; scrollbar-width: none; }
+.week::-webkit-scrollbar { display: none; }
+
+.daycard {
+  flex: none;
+  width: 66px;
+  background: var(--surface);
+  border: none;
+  border-radius: var(--r-md);
+  padding: 10px 0 8px;
+  box-shadow: var(--shadow-card);
+  display: grid; justify-items: center; gap: 2px;
+}
+.daycard--on { background: var(--accent); box-shadow: none; }
+.daycard--on .daycard__dow, .daycard--on .daycard__num { color: var(--accent-ink); }
+.daycard--empty { background: transparent; box-shadow: none; }
+.daycard--empty .daycard__dow, .daycard--empty .daycard__num { color: var(--muted); }
+
+.daycard__dow { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; color: var(--muted); }
+.daycard__num { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* A bar for availability, a dot for your own day: two facts, two marks. */
+.daycard__bar { width: 26px; height: 3px; border-radius: 2px; background: var(--state-free); }
+.daycard__bar--none { background: var(--state-taken); }
+.daycard--on .daycard__bar { background: rgb(255 255 255 / 55%); }
+
+.daycard__dot { width: 7px; height: 7px; border-radius: var(--r-pill); }
+.daycard__dot--booked { background: var(--clay); }
+.daycard__dot--away { border: 1.5px solid var(--muted); }
+.daycard--on .daycard__dot--booked { background: var(--accent-ink); }
+.daycard__dot--none { background: transparent; }
+
+/* ---- floor plan --------------------------------------------------------- */
+
+.plan-screen { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+.floorplan {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--surface);
+  touch-action: none;
+}
+.floorplan svg { display: block; width: 100%; height: 100%; }
+
+.plan-controls {
+  position: absolute;
+  top: 12px; left: 16px; right: 16px;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+  z-index: 2;
+}
+.plan-controls > * { pointer-events: auto; }
+.plan-controls__stack { display: grid; gap: 10px; justify-items: start; }
+
+.count-free { color: var(--state-free); }
+.count-total { color: var(--muted); font-weight: 500; }
+
+/* Desks are circles. Colour is CSS, so a state change is a class swap. */
+.desk { fill: var(--state-free); cursor: pointer; }
+.desk--booked { fill: var(--state-taken); cursor: not-allowed; }
+.desk--mine { fill: var(--state-yours); cursor: pointer; }
+.desk--unavailable { fill: var(--state-taken); opacity: 0.45; cursor: not-allowed; }
+.desk--assigned { fill: var(--state-person); cursor: not-allowed; }
+.desk--room { fill: var(--state-zone); }
+.desk--room.desk--booked { fill: var(--state-taken); }
+
+.desk-ring { fill: none; stroke: var(--state-yours); stroke-width: 3; opacity: 0.4; }
+
+/* ---- list --------------------------------------------------------------- */
+
+.desk-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.desk-list .name { font-weight: 600; }
+
+/* ---- sheet -------------------------------------------------------------- */
+
+.scrim {
+  position: fixed; inset: 0;
+  background: rgb(22 24 28 / 45%);
+  z-index: 10;
+  border: none;
+  width: 100%;
+  animation: fade 160ms ease-out;
+}
+
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  z-index: 11;
+  background: var(--surface);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  padding: 10px 20px calc(20px + env(safe-area-inset-bottom));
+  box-shadow: var(--shadow-float);
+  animation: rise 220ms cubic-bezier(0.2, 0.9, 0.3, 1);
+  max-height: 85dvh;
+  overflow-y: auto;
+}
+.sheet__grab {
+  width: 44px; height: 4px; border-radius: 2px;
+  background: var(--line);
+  margin: 0 auto 14px;
+}
+.sheet__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sheet__actions { display: grid; gap: 10px; margin-top: 18px; }
+.sheet__code {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  margin: 14px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.warn-icon {
+  width: 40px; height: 40px; flex: none;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--clay) 14%, transparent);
+  color: var(--clay);
+  display: grid; place-items: center;
+  font-size: 20px; font-weight: 700;
+}
+
+.alts { background: var(--ground); border-radius: var(--r-md); padding: 14px 16px; margin-top: 16px; }
+.alts__row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 7px 0; width: 100%;
+  background: none; border: none; text-align: left;
+}
+.alts__row + .alts__row { border-top: 1px solid var(--line); }
+.alts__free { color: var(--state-free); font-weight: 600; }
+
+@keyframes rise { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet, .scrim { animation: none; }
+}
 
 /* The scanning screen makes the webview transparent so the native camera
    preview behind it shows through (TDD §10.2). */
 body.scanner-active,
 body.scanner-active #root { background: transparent !important; }
-
-/* ---- app shell ---------------------------------------------------------- */
-
-.shell { max-width: 1100px; margin: 0 auto; padding: 12px 16px 32px; }
-
-.bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 10px 0;
-  flex-wrap: wrap;
-}
-
-.muted { color: color-mix(in srgb, var(--fg) 55%, transparent); font-size: 14px; }
-
-.days { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
-
-.day, .tabs button {
-  font: inherit;
-  font-size: 14px;
-  padding: 7px 12px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--fg) 20%, transparent);
-  background: transparent;
-  color: var(--fg);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.day--on, .tabs button[aria-pressed="true"] {
-  background: var(--desk-mine);
-  border-color: var(--desk-mine);
-  color: #fff;
-}
-
-.tabs { display: flex; gap: 6px; }
-
-.notice {
-  margin: 8px 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 14px;
-  background: color-mix(in srgb, var(--desk-assigned) 18%, transparent);
-  border: 1px solid color-mix(in srgb, var(--desk-assigned) 45%, transparent);
-}
-
-.notice--error {
-  background: color-mix(in srgb, #c0392b 15%, transparent);
-  border-color: color-mix(in srgb, #c0392b 45%, transparent);
-}
-
-.floorplan {
-  border: 1px solid color-mix(in srgb, var(--fg) 12%, transparent);
-  border-radius: 10px;
-}
-
-.desk { cursor: pointer; }
-.desk--booked, .desk--unavailable, .desk--assigned { cursor: not-allowed; }
-
-/* ---- list view ---------------------------------------------------------- */
-
-.desk-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 8px;
-}
-
-.desk-list button {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  font: inherit;
-  font-size: 14px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--fg) 15%, transparent);
-  background: transparent;
-  color: var(--fg);
-  cursor: pointer;
-  text-align: left;
-}
-
-.desk-list button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.desk-list button:focus-visible,
-.day:focus-visible,
-.tabs button:focus-visible { outline: 2px solid var(--desk-mine); outline-offset: 2px; }
-
-.state { font-size: 12px; }
-.state--free { color: var(--desk-free); }
-.state--mine { color: var(--desk-mine); }
-.state--booked, .state--unavailable, .state--assigned { color: var(--desk-booked); }

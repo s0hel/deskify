@@ -33,3 +33,32 @@ export function weekdayLabel(isoDate: string, locale = "en-GB"): string {
     timeZone: "UTC",
   }).format(new Date(Date.UTC(y, m - 1, d)));
 }
+
+/** "Saturday", for a sentence like "Book for Saturday". */
+export function dayName(isoDate: string, locale = "en-GB"): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Intl.DateTimeFormat(locale, { weekday: "long", timeZone: "UTC" }).format(
+    new Date(Date.UTC(y, m - 1, d)),
+  );
+}
+
+/** "Saturday, 19 September" -- for headlines and the alternatives list. */
+export function longLabel(isoDate: string, locale = "en-GB"): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Intl.DateTimeFormat(locale, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(y, m - 1, d)));
+}
+
+/** "19 September" for the big date header. */
+export function displayDate(isoDate: string, locale = "en-GB"): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(y, m - 1, d)));
+}

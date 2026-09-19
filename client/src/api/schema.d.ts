@@ -95,6 +95,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sites/{site_id}/days": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Site Days
+         * @description Per-day availability and the user's own booking, for the home strip.
+         *
+         *     One query per concept rather than one per day: the client used to need N
+         *     round trips to colour a week, which is the kind of thing that makes a home
+         *     screen feel slow on a train.
+         */
+        get: operations["site_days_sites__site_id__days_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sites/{site_id}/floors": {
         parameters: {
             query?: never;
@@ -266,6 +290,29 @@ export interface components {
              * @enum {string}
              */
             slot: "day" | "am" | "pm";
+        };
+        /**
+         * DayOut
+         * @description One day in the 7-day strip (FR-2.1).
+         */
+        DayOut: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Free */
+            free: number;
+            /** Total */
+            total: number;
+            /** Capacity Cap */
+            capacity_cap: number | null;
+            /** My Booking Id */
+            my_booking_id: string | null;
+            /** My Resource Name */
+            my_resource_name: string | null;
+            /** Declaration */
+            declaration: string | null;
         };
         /** DiscoverRequest */
         DiscoverRequest: {
@@ -586,6 +633,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SiteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    site_days_sites__site_id__days_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                site_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DayOut"][];
                 };
             };
             /** @description Validation Error */

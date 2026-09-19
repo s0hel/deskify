@@ -36,13 +36,16 @@ export function DeskList({
           <li key={d.id}>
             <button
               type="button"
+              className="row-card"
               data-resource-id={d.id}
               disabled={!actionable}
               onClick={() => onSelect?.(d.id)}
               aria-label={`${d.name}. ${LABEL[state]}`}
             >
-              <span>{d.name}</span>
-              <span className={`state state--${state}`}>{LABEL[state]}</span>
+              <span className="name tabular">{d.name}</span>
+              <span className={`tag tag--${state === "free" ? "free" : state === "mine" ? "yours" : "taken"}`}>
+                {LABEL[state]}
+              </span>
             </button>
           </li>
         );

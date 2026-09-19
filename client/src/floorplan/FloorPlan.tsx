@@ -17,9 +17,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   IDENTITY,
+  type Size,
   type Transform,
   type ViewBox,
   clampViewBox,
+  coverViewBox,
   foldTransform,
   shouldRenderLabels,
   toCss,
@@ -45,8 +47,8 @@ export interface FloorPlanProps {
   editable?: boolean;
 }
 
-const DESK_W = 44;
-const DESK_H = 30;
+const DESK_R = 16;
+const ROOM_R = 26;
 
 export function FloorPlan({
   planWidth,
@@ -63,23 +65,45 @@ export function FloorPlan({
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinchStart = useRef<{ dist: number; k: number } | null>(null);
 
-  const [viewBox, setViewBox] = useState<ViewBox>({
-    x: 0,
-    y: 0,
-    w: planWidth,
-    h: planHeight,
-  });
+  const plan = useMemo<Size>(
+    () => ({ w: planWidth, h: planHeight }),
+    [planWidth, planHeight],
+  );
+  const lastSize = useRef<Size | null>(null);
+  const [viewBox, setViewBox] = useState<ViewBox>({ x: 0, y: 0, w: planWidth, h: planHeight });
+  const withLabels = lastSize.current
+    ? shouldRenderLabels(viewBox, lastSize.current)
+    : false;
 
-  const plan = useMemo(() => ({ w: planWidth, h: planHeight }), [planWidth, planHeight]);
-  const withLabels = shouldRenderLabels(viewBox, plan);
+  // Fill the container on mount and whenever it is resized -- a rotated phone
+  // or a split-screen pane must not leave the plan letterboxed.
+  useEffect(() => {
+    const el = wrapper.current;
+    if (!el) return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width < 1 || height < 1) return;
+      const prev = lastSize.current;
+      if (prev && Math.abs(prev.w - width) < 1 && Math.abs(prev.h - height) < 1) return;
+      lastSize.current = { w: width, h: height };
+      setViewBox(coverViewBox(plan, lastSize.current));
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [plan]);
 
   // -- Rule 4: state changes are attribute writes, never a React re-render. ----
   useEffect(() => {
     const root = svg.current;
     if (!root) return;
     for (const [id, state] of Object.entries(states)) {
-      const node = root.querySelector<SVGRectElement>(`[data-resource-id="${id}"]`);
-      node?.setAttribute("class", `desk desk--${state}`);
+      const node = root.querySelector<SVGCircleElement>(
+        `.desks [data-resource-id="${id}"]`,
+      );
+      if (!node) continue;
+      const isRoom = node.classList.contains("desk--room");
+      node.setAttribute("class", isRoom ? `desk desk--room desk--${state}` : `desk desk--${state}`);
     }
   }, [states]);
 
@@ -94,7 +118,8 @@ export function FloorPlan({
     if (t.x === 0 && t.y === 0 && t.k === 1) return;
 
     const rect = el.getBoundingClientRect();
-    const next = clampViewBox(foldTransform(viewBox, t, { w: rect.width, h: rect.height }), plan);
+    const size = { w: rect.width, h: rect.height };
+    const next = clampViewBox(foldTransform(viewBox, t, size), plan, size);
 
     gesture.current = { ...IDENTITY };
     el.style.transform = "";
@@ -177,23 +202,51 @@ export function FloorPlan({
           <image href={planImageUrl} x={0} y={0} width={plan.w} height={plan.h} />
         )}
         <g className="desks">
-          {desks.map((d) => (
-            <rect
-              key={d.id}
-              data-resource-id={d.id}
-              className={`desk desk--${states[d.id] ?? "free"}`}
-              x={d.plan_x}
-              y={d.plan_y}
-              width={d.kind === "room" ? DESK_W * 2 : DESK_W}
-              height={d.kind === "room" ? DESK_H * 2 : DESK_H}
-              rx={4}
-            />
-          ))}
+          {desks.map((d) => {
+            const state = states[d.id] ?? "free";
+            return (
+              <circle
+                key={d.id}
+                data-resource-id={d.id}
+                className={
+                  d.kind === "room"
+                    ? `desk desk--room desk--${state}`
+                    : `desk desk--${state}`
+                }
+                cx={d.plan_x}
+                cy={d.plan_y}
+                r={d.kind === "room" ? ROOM_R : DESK_R}
+              />
+            );
+          })}
+        </g>
+        {/* Your own desk gets a ring, so it is findable without reading labels.
+            Drawn in its own layer and never hit-tested. */}
+        <g className="rings" pointerEvents="none">
+          {desks
+            .filter((d) => states[d.id] === "mine")
+            .map((d) => (
+              <circle
+                key={d.id}
+                className="desk-ring"
+                cx={d.plan_x}
+                cy={d.plan_y}
+                r={(d.kind === "room" ? ROOM_R : DESK_R) + 7}
+              />
+            ))}
         </g>
         {withLabels && (
           <g className="labels" pointerEvents="none">
             {desks.map((d) => (
-              <text key={d.id} x={d.plan_x + 4} y={d.plan_y + 18} fontSize={10}>
+              <text
+                key={d.id}
+                x={d.plan_x}
+                y={d.plan_y + (d.kind === "room" ? ROOM_R : DESK_R) + 16}
+                fontSize={13}
+                textAnchor="middle"
+                fill="currentColor"
+                opacity={0.55}
+              >
                 {d.name}
               </text>
             ))}

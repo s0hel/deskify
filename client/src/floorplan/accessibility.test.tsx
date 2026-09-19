@@ -43,7 +43,7 @@ describe("plan and list equivalence", () => {
     const list = render(<DeskList desks={desks} states={states} />);
 
     expect(idsIn(list.container, "button[data-resource-id]")).toEqual(
-      idsIn(plan.container, "rect[data-resource-id]"),
+      idsIn(plan.container, ".desks [data-resource-id]"),
     );
   });
 

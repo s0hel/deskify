@@ -16,12 +16,12 @@ from typing import TypeVar
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import AppUser, Base, Booking, Floor, Resource, Site, Zone
+from app.models import AppUser, Base, Booking, DayDeclaration, Floor, Resource, Site, Zone
 
 T = TypeVar("T", bound=Base)
 
 #: Tables that are tenant-scoped. Anything here MUST be fetched through this layer.
-TENANT_SCOPED = (AppUser, Site, Floor, Zone, Resource, Booking)
+TENANT_SCOPED = (AppUser, Site, Floor, Zone, Resource, Booking, DayDeclaration)
 
 
 class TenantRepository:

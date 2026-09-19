@@ -5,7 +5,7 @@ The device's timezone is never consulted. Every day-boundary computation in this
 codebase goes through this module -- there is no second implementation.
 """
 
-from datetime import date, datetime, time
+from datetime import UTC, date, datetime, time
 from zoneinfo import ZoneInfo
 
 
@@ -27,6 +27,12 @@ def site_day_bounds(day: date, site_timezone: str, opens: time, closes: time) ->
 
 DEFAULT_OPEN = time(8, 0)
 DEFAULT_CLOSE = time(18, 0)
+
+
+def local_today(site_timezone: str, now: datetime | None = None) -> date:
+    """Today, in the site's timezone. Never the server's."""
+
+    return local_date_of(now or datetime.now(UTC), site_timezone)
 
 
 def parse_opening_hours(opening_hours: dict | None) -> tuple[time, time]:
