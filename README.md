@@ -43,19 +43,28 @@ verified and running.
 
 ## Configuration fails closed
 
-`DESKFLOW_ENVIRONMENT` defaults to **`prod`**, not dev. Two things depend on it — the
-JWT signing key, and `/auth/dev-sign-in`, which mints a token for any user from an
-email alone. A forgotten variable must not hand out a published signing key and a live
-auth bypass, so dev is an explicit opt-in:
+`DESKFLOW_ENVIRONMENT` defaults to **`prod`**, not dev. Three things depend on it — the
+JWT signing key, the database credentials, and `/auth/dev-sign-in`, which mints a token
+for any user from an email alone. A forgotten variable must not hand out a published
+signing key, a published database password, and a live auth bypass, so dev is an
+explicit opt-in:
 
 - the `make` targets export `DESKFLOW_ENVIRONMENT=dev`
 - CI sets it for the test jobs
 - `tests/conftest.py` sets it before anything imports `app.config`
 
-Outside dev the API **refuses to start** if the signing key is the one in this
-repository or is under 32 characters, and `/auth/dev-sign-in` is not registered at all.
+Outside dev the API **refuses to start** if:
 
-Copy `api/.env.example` to `api/.env` for local work. For anything else:
+| Setting | Refused when |
+|---|---|
+| `DESKFLOW_JWT_SECRET` | it is the default in this repo, or under 32 characters |
+| `DESKFLOW_DATABASE_URL` | it is the default in this repo, has no password, uses the username as the password, uses a placeholder (`changeme`, `postgres`, …), or the password is under 16 characters |
+
+and `/auth/dev-sign-in` is not registered at all. The database check is about
+credentials, not topology — a `localhost` database in production is fine.
+
+Copy `api/.env.example` to `api/.env` for local work; it is gitignored and already
+carries the dev defaults. For staging and production, generate real values:
 
 ```bash
 openssl rand -base64 48

@@ -61,16 +61,39 @@ jobs:
       - uses: astral-sh/setup-uv@v4
       - run: uv sync
         working-directory: api
-      - name: API must refuse to start with the default secret outside dev
+      - name: Refuse to start with the default JWT secret outside dev
         working-directory: api
         env:
           DESKFLOW_ENVIRONMENT: prod
         run: |
           if uv run python -c "import app.config" 2>/dev/null; then
-            echo "::error::config guard did not fire: the API booted in prod with the default JWT secret"
+            echo "::error::guard did not fire: the API booted in prod with the default JWT secret"
             exit 1
           fi
           echo "guard fired as expected"
+
+      - name: Refuse to start with the default database URL outside dev
+        working-directory: api
+        env:
+          DESKFLOW_ENVIRONMENT: prod
+          # A real signing key is not enough if the database credentials are
+          # the ones published in this repository.
+          DESKFLOW_JWT_SECRET: ${{ github.sha }}${{ github.sha }}
+        run: |
+          if uv run python -c "import app.config" 2>/dev/null; then
+            echo "::error::guard did not fire: the API booted in prod with the default database URL"
+            exit 1
+          fi
+          echo "guard fired as expected"
+
+      - name: A fully configured prod environment must still start
+        working-directory: api
+        env:
+          # Guards the guards: if this fails, the two checks above prove nothing.
+          DESKFLOW_ENVIRONMENT: prod
+          DESKFLOW_JWT_SECRET: ${{ github.sha }}${{ github.sha }}
+          DESKFLOW_DATABASE_URL: postgresql+asyncpg://svc:${{ github.sha }}@db.internal:5432/deskflow
+        run: uv run python -c "import app.config; print('configured prod boots')"
 
   contract:
     # The generated client must match the live schema, so drift is a failing

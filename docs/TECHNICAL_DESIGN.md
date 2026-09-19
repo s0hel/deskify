@@ -1203,11 +1203,12 @@ scan attempts.
 
 Added 2026-09-19, from the Phase 0 skeleton.
 
-Two behaviours are gated on `environment`: the JWT signing key, and
-`/auth/dev-sign-in`, which mints a token for any user given nothing but an email
-address. Both are correct in dev and catastrophic in production, and both were originally
-protected by a setting that *defaulted to dev*. An operator who forgot one environment
-variable would have got a published signing key and a live authentication bypass.
+Three behaviours are gated on `environment`: the JWT signing key, the database
+credentials, and `/auth/dev-sign-in`, which mints a token for any user given nothing but
+an email address. All are correct in dev and catastrophic in production, and all were
+originally protected by a setting that *defaulted to dev*. An operator who forgot one
+environment variable would have got a published signing key, a published database
+password, and a live authentication bypass.
 
 The rule is therefore inverted:
 
@@ -1217,13 +1218,25 @@ The rule is therefore inverted:
 - **The process refuses to start** outside dev if the signing key is the one published in
   this repository, or is shorter than 32 characters. A guard that recognised only the exact
   default would be defeated by someone typing `changeme`.
+- **The same applies to the database URL**, which is refused outside dev if it is the
+  published default, has no password, uses the username as the password, uses a well-known
+  placeholder, or has a password under 16 characters. This check is on *credentials, not
+  topology*: a `localhost` database in production is legitimate — a socket, or a sidecar —
+  so the guard must never drift into being a host allowlist.
 - **`/auth/dev-sign-in` is mounted only in dev**, so elsewhere the route does not exist
   rather than existing and refusing. A later refactor can drop a refusal; it cannot
   accidentally re-register a router.
 
-All three are pinned by tests (`test_config_guard.py`, `test_dev_endpoint_isolation.py`),
+All of this is pinned by tests (`test_config_guard.py`, `test_dev_endpoint_isolation.py`),
 the second of which starts real subprocesses and asserts a 404 in prod and staging. CI runs
-a job whose only job is to confirm the guard still fires.
+a job whose only purpose is to confirm the guards still fire — **including a positive case**,
+because a guard that rejects everything looks identical to a working one until the day it
+blocks a deploy.
+
+One constraint on every guard here: **an error message must never echo the value it
+rejected.** These errors land in logs and crash reporters, so an error that helpfully prints
+the password it refused has moved that password somewhere worse than the config file. There
+is a test asserting this for both guards.
 
 The general principle, worth applying to every setting added later: **a missing
 configuration value must fail closed.** The cost of a noisy startup failure is minutes; the
@@ -1287,6 +1300,8 @@ measured retroactively.
 | D14 | `tstzrange` bounds always written explicitly as `[)` | §4.1 — a library default here would silently break half-day booking |
 | D15 | `environment` defaults to `prod`; dev is an explicit opt-in | §15.4 — a forgotten variable must not yield a live auth bypass |
 | D16 | Dev-only routes are mounted conditionally, not gated inside the handler | §15.4 — a refactor can drop a check; it cannot re-register a router |
+| D17 | Database credentials guarded on strength, not on host | §15.4 — a localhost database in prod is legitimate; a `deskflow:deskflow` one is not |
+| D18 | Guard errors never echo the value they rejected | §15.4 — these messages reach logs and crash reporters |
 | D2 | `site_id` + `local_date` denormalized onto `booking` | §3.4 — serves the single timezone rule |
 | D3 | `jsonb` attributes + GIN, not an EAV table | §3.2 — open-ended filters, no join on the hot path |
 | D4 | Backend-for-frontend OIDC | §6.1 — secrets server-side, one token format, SAML later is server-only |
