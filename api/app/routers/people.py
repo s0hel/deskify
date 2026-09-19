@@ -260,6 +260,181 @@ async def person_detail(user_id: uuid.UUID, repo: Repo, principal: Me, db: Db) -
     )
 
 
+class TeamOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    #: VISIBLE members only. Counting people the viewer cannot see would let
+    #: them infer that someone is hidden, which is the leak this whole module
+    #: exists to prevent (TDD §15.5).
+    member_count: int
+    anchor_days: list[int]
+
+
+@router.get("/teams", response_model=list[TeamOut])
+async def my_teams(repo: Repo, principal: Me, db: Db) -> list[TeamOut]:
+    visible = await _visible_ids(db, principal)
+    my_groups = await _my_group_names(repo, principal.user_id)
+    if not my_groups:
+        return []
+
+    groups = {g.id: g for g in await repo.list(UserGroup) if g.id in my_groups}
+    memberships = await repo.list(GroupMember)
+
+    counts: dict[uuid.UUID, int] = dict.fromkeys(groups, 0)
+    for m in memberships:
+        if m.group_id in counts and m.user_id in visible:
+            counts[m.group_id] += 1
+
+    return sorted(
+        (
+            TeamOut(
+                id=g.id,
+                name=g.name,
+                member_count=counts[g.id],
+                anchor_days=sorted(int(d) for d in (g.anchor_days or [])),
+            )
+            for g in groups.values()
+        ),
+        key=lambda t: t.name,
+    )
+
+
+class GridCell(BaseModel):
+    date: date
+    kind: Literal["office", "remote", "leave", "none"]
+    resource_name: str | None = None
+
+
+class GridRow(BaseModel):
+    user_id: uuid.UUID
+    display_name: str
+    is_you: bool
+    cells: list[GridCell]
+    office_days: int
+
+
+class TeamWeekOut(BaseModel):
+    team: TeamOut
+    days: list[date]
+    anchor_days: list[int]
+    rows: list[GridRow]
+    #: How many of the visible team are in, per day. Drives the column footer.
+    in_per_day: list[int]
+
+
+class PastWeek(NotFound):
+    status, code, title = 422, "PAST_WEEK", "That week has already finished"
+
+
+def _week_start(day: date) -> date:
+    """The Monday of that day's week."""
+    return day - timedelta(days=day.weekday())
+
+
+@router.get("/teams/{team_id}/week", response_model=TeamWeekOut)
+async def team_week(
+    team_id: uuid.UUID, repo: Repo, principal: Me, db: Db, start: date | None = None
+) -> TeamWeekOut:
+    """FR-5.4 -- a week grid of the team's PLANNED presence.
+
+    Deliberately forward-only. A grid that scrolls backwards stops being a
+    coordination tool and becomes a per-person attendance record, which is
+    exactly what FR-9.5 and TDD §13.3 rule out as a product position. The
+    current week is allowed because it contains today; earlier weeks are not.
+    """
+    my_groups = await _my_group_names(repo, principal.user_id)
+    if team_id not in my_groups:
+        # Not a team you belong to. 404 rather than 403, as everywhere else.
+        raise NotFound("team")
+
+    group = await repo.get(UserGroup, team_id)
+    if group is None:
+        raise NotFound("team")
+
+    sites = await repo.list(Site)
+    timezone = sites[0].timezone if sites else "UTC"
+    today = local_today(timezone)
+
+    week_start = _week_start(start or today)
+    days = [week_start + timedelta(days=i) for i in range(7)]
+    if days[-1] < today:
+        raise PastWeek(
+            "The team grid shows planned presence, not attendance history.",
+            earliest=_week_start(today).isoformat(),
+        )
+
+    visible = await _visible_ids(db, principal)
+    memberships = await repo.list(GroupMember, GroupMember.group_id == team_id)
+    member_ids = {m.user_id for m in memberships if m.user_id in visible}
+
+    users = {u.id: u for u in await repo.list(AppUser) if u.id in member_ids}
+    bookings = await repo.list(
+        Booking,
+        Booking.local_date >= days[0],
+        Booking.local_date <= days[-1],
+        Booking.status.notin_(("cancelled", "released_no_show")),
+        Booking.user_id.in_(member_ids or {uuid.uuid4()}),
+    )
+    declarations = await repo.list(
+        DayDeclaration,
+        DayDeclaration.local_date >= days[0],
+        DayDeclaration.local_date <= days[-1],
+        DayDeclaration.user_id.in_(member_ids or {uuid.uuid4()}),
+    )
+    resources = {r.id: r.name for r in await repo.list(Resource)}
+
+    booked: dict[tuple[uuid.UUID, date], str | None] = {
+        (b.user_id, b.local_date): resources.get(b.resource_id) for b in bookings
+    }
+    declared: dict[tuple[uuid.UUID, date], str] = {
+        (d.user_id, d.local_date): d.kind for d in declarations
+    }
+
+    rows: list[GridRow] = []
+    in_per_day = [0] * len(days)
+    for user in users.values():
+        cells: list[GridCell] = []
+        for index, d in enumerate(days):
+            key = (user.id, d)
+            if key in booked:
+                cells.append(GridCell(date=d, kind="office", resource_name=booked[key]))
+                in_per_day[index] += 1
+            else:
+                kind = declared.get(key)
+                if kind == "office":
+                    cells.append(GridCell(date=d, kind="office"))
+                    in_per_day[index] += 1
+                else:
+                    cells.append(
+                        GridCell(date=d, kind=kind if kind in ("remote", "leave") else "none")
+                    )
+        rows.append(
+            GridRow(
+                user_id=user.id,
+                display_name=user.display_name,
+                is_you=user.id == principal.user_id,
+                cells=cells,
+                office_days=sum(1 for c in cells if c.kind == "office"),
+            )
+        )
+
+    rows.sort(key=lambda r: (not r.is_you, r.display_name.lower()))
+    anchors = sorted(int(d) for d in (group.anchor_days or []))
+
+    return TeamWeekOut(
+        team=TeamOut(
+            id=group.id,
+            name=group.name,
+            member_count=len(member_ids),
+            anchor_days=anchors,
+        ),
+        days=days,
+        anchor_days=anchors,
+        rows=rows,
+        in_per_day=in_per_day,
+    )
+
+
 class PrivacyIn(BaseModel):
     presence_visibility: Literal["everyone", "team", "nobody"]
 

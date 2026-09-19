@@ -26,6 +26,8 @@ from app.models import (
     Zone,
 )
 
+ANCHOR_DAYS = {"Engineering": [2, 4], "Design": [3], "Sales": [2]}
+
 PLAN_W, PLAN_H = 1600, 1000
 DESKS = 300
 
@@ -52,9 +54,27 @@ async def _desks(s, org_id):
 
 async def seed() -> None:
     async with SessionLocal() as s:
-        for t in ("booking", "site_day_capacity", "resource", "zone", "floor",
-                  "day_declaration", "app_user", "site", "email_domain", "policy",
-                  "audit_log", "idempotency_key", "job", "organization"):
+        # Child rows first. group_member references app_user, so deleting users
+        # before memberships trips a foreign key -- and the seed then half-fails
+        # in a way that looks like the new code is broken.
+        for t in (
+            "booking",
+            "site_day_capacity",
+            "day_declaration",
+            "group_member",
+            "user_group",
+            "resource",
+            "zone",
+            "floor",
+            "app_user",
+            "site",
+            "email_domain",
+            "policy",
+            "audit_log",
+            "idempotency_key",
+            "job",
+            "organization",
+        ):
             await s.execute(text(f"DELETE FROM {t}"))
 
         org = Organization(name="Northwind", region="eu")
@@ -141,7 +161,13 @@ async def seed() -> None:
             for name in group_names:
                 group = groups.get(name)
                 if group is None:
-                    group = UserGroup(organization_id=org.id, name=name, kind="team")
+                    group = UserGroup(
+                        organization_id=org.id,
+                        name=name,
+                        kind="team",
+                        # ISO weekdays. Engineering anchors Tue/Thu, Design Wed.
+                        anchor_days=ANCHOR_DAYS.get(name, []),
+                    )
                     s.add(group)
                     await s.flush()
                     groups[name] = group
@@ -158,6 +184,14 @@ async def seed() -> None:
         today = local_today(site.timezone)
         desks_by_name = {r.name: r for r in await _desks(s, org.id)}
 
+        # Spread across WEEKDAYS, not raw day offsets. Seeding today+0..3 when
+        # today is a Saturday puts most of the demo data on a weekend, and the
+        # team week grid then looks broken rather than quiet.
+        upcoming = [today + timedelta(days=i) for i in range(14)]
+        # Index 0 is always TODAY, so the home screen has something in it even
+        # at a weekend; the rest are weekdays, so the team grid does too.
+        weekdays = [today] + [d for d in upcoming if d.weekday() < 5 and d != today][:6]
+
         plans = [
             ("marcus", 0, "4F-A-023"),
             ("ana", 0, "4F-A-045"),
@@ -167,9 +201,12 @@ async def seed() -> None:
             ("ana", 2, "4F-A-045"),
             ("sam", 2, "4F-A-067"),
             ("marcus", 3, "4F-A-023"),
+            ("ana", 3, "4F-A-045"),
+            ("sam", 4, "4F-A-067"),
+            ("ren", 4, "4F-A-112"),
         ]
-        for handle, offset, desk_name in plans:
-            day = today + timedelta(days=offset)
+        for handle, index, desk_name in plans:
+            day = weekdays[index]
             desk = desks_by_name[desk_name]
             s.add(
                 Booking(
@@ -186,17 +223,20 @@ async def seed() -> None:
                 )
             )
 
-        for handle, offset, kind in [
+        declarations = [
             ("dana", 0, "remote"),
             ("nadia", 0, "leave"),
             ("marcus", 2, "remote"),
             ("ren", 1, "remote"),
-        ]:
+            ("sam", 1, "remote"),
+            ("nadia", 3, "leave"),
+        ]
+        for handle, index, kind in declarations:
             s.add(
                 DayDeclaration(
                     organization_id=org.id,
                     user_id=users[handle].id,
-                    local_date=today + timedelta(days=offset),
+                    local_date=weekdays[index],
                     kind=kind,
                 )
             )
@@ -207,7 +247,7 @@ async def seed() -> None:
         print(f"       site={site.id} ({site.name}, {site.timezone})")
         print(f"       floor={floor.id} plan={PLAN_W}x{PLAN_H} desks={DESKS} rooms=3")
         print(f"       {len(people)} people in {len(groups)} teams, "
-              f"{len(plans)} bookings, 4 declarations")
+              f"{len(plans)} bookings, {len(declarations)} declarations")
         print("       sign in as priya@northwind.example")
         print("       (jo@northwind.example is set to 'nobody' -- she should not appear)")
 

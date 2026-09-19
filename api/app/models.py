@@ -294,6 +294,9 @@ class UserGroup(Base):
     organization_id: Mapped[uuid.UUID] = _org()
     name: Mapped[str] = mapped_column(Text, nullable=False)
     kind: Mapped[str] = mapped_column(Text, nullable=False, server_default="team")
+    #: ISO weekdays (1 = Monday) the team has agreed to come in. FR-5.4 shows
+    #: them on the grid; FR-5.8 (P1) lets a lead set them.
+    anchor_days: Mapped[list] = mapped_column(JSONB, nullable=False, server_default="[]")
     __table_args__ = (
         UniqueConstraint("organization_id", "name", name="user_group_org_name_key"),
         CheckConstraint("kind IN ('team','department','custom')", name="user_group_kind_check"),

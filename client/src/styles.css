@@ -477,3 +477,141 @@ body.scanner-active #root { background: transparent !important; }
   font-weight: 600;
   padding: 4px 0;
 }
+
+/* ---- team week grid ----------------------------------------------------- */
+
+.chiprow { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.chip {
+  flex: none;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--r-pill);
+  padding: 7px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.chip--on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+.weeknav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0 8px;
+}
+.weeknav__btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--r-pill);
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--ink);
+}
+.weeknav__btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.gridcap {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 2px 8px;
+}
+
+.grid {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 12px 10px;
+  box-shadow: var(--shadow-card);
+}
+
+/* One column for the name, seven equal day columns. */
+.grid__head, .grid__row, .grid__foot {
+  display: grid;
+  /* Enough for a 28px avatar plus a first name; the rest split evenly. */
+  grid-template-columns: minmax(92px, 1fr) repeat(7, minmax(26px, 1fr));
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+}
+.grid__row { padding: 5px 0; border-radius: var(--r-sm); }
+.grid__row:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+
+.grid__name { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.grid__who {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grid__day { display: grid; justify-items: center; gap: 1px; padding: 2px 0 6px; }
+.grid__dow { font-size: 10px; font-weight: 700; color: var(--muted); }
+.grid__dom { font-size: 13px; font-weight: 700; }
+
+/* An anchor day is a team agreement, so it marks the COLUMN, not a cell. */
+.grid__day--anchor {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  border-radius: var(--r-sm);
+}
+.grid__day--anchor .grid__dow, .grid__day--anchor .grid__dom { color: var(--accent); }
+.grid__day--today .grid__dom {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-radius: var(--r-pill);
+  min-width: 20px;
+  text-align: center;
+}
+
+.grid__cell {
+  height: 22px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  justify-self: stretch;
+}
+.grid__cell--office { background: var(--state-free); }
+.grid__cell--remote {
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--state-person) 45%, transparent) 0 3px,
+    transparent 3px 6px
+  );
+}
+.grid__cell--leave { background: color-mix(in srgb, var(--clay) 30%, transparent); }
+
+.grid__foot { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 8px; }
+.grid__total {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 12px 2px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.legend__item { display: flex; align-items: center; gap: 6px; }
+.legend__item .grid__cell { width: 16px; height: 12px; border-radius: 3px; }
+.legend__item--anchor::before {
+  content: "";
+  width: 16px;
+  height: 12px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+/* The plan's segmented control floats; this one sits in the flow. */
+.seg--flush { box-shadow: none; border: 1px solid var(--line); width: 100%; }
+.seg--flush button { flex: 1; }

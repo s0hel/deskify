@@ -62,3 +62,19 @@ export function displayDate(isoDate: string, locale = "en-GB"): string {
     timeZone: "UTC",
   }).format(new Date(Date.UTC(y, m - 1, d)));
 }
+
+/** The Monday of that date's week. The grid is always Monday-first. */
+export function weekStart(isoDate: string): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  // getUTCDay: 0 = Sunday. Shift so Monday is 0.
+  const shift = (dt.getUTCDay() + 6) % 7;
+  dt.setUTCDate(dt.getUTCDate() - shift);
+  return dt.toISOString().slice(0, 10);
+}
+
+/** ISO weekday, 1 = Monday .. 7 = Sunday. */
+export function isoWeekday(isoDate: string): number {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return ((new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7) + 1;
+}

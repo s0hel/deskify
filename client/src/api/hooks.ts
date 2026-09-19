@@ -99,6 +99,35 @@ export interface PersonDetail {
   schedule: ScheduleDay[];
 }
 
+export interface Team {
+  id: string;
+  name: string;
+  member_count: number;
+  anchor_days: number[];
+}
+
+export interface GridCell {
+  date: string;
+  kind: "office" | "remote" | "leave" | "none";
+  resource_name: string | null;
+}
+
+export interface GridRow {
+  user_id: string;
+  display_name: string;
+  is_you: boolean;
+  cells: GridCell[];
+  office_days: number;
+}
+
+export interface TeamWeek {
+  team: Team;
+  days: string[];
+  anchor_days: number[];
+  rows: GridRow[];
+  in_per_day: number[];
+}
+
 export type Visibility = "everyone" | "team" | "nobody";
 
 export interface Me {
@@ -125,6 +154,8 @@ export const keys = {
   days: (siteId: string) => ["days", siteId] as const,
   people: (on: string) => ["people", on] as const,
   person: (id: string) => ["person", id] as const,
+  teams: ["teams"] as const,
+  teamWeek: (id: string, start: string) => ["teamWeek", id, start] as const,
   floors: (siteId: string) => ["floors", siteId] as const,
   floor: (floorId: string) => ["floor", floorId] as const,
   floorState: (floorId: string, on: string) => ["floorState", floorId, on] as const,
@@ -320,4 +351,28 @@ export function useSetDeclaration() {
       },
     },
   );
+}
+
+
+export function useTeams(enabled: boolean) {
+  return useQuery({
+    queryKey: keys.teams,
+    queryFn: () => api<Team[]>("/teams"),
+    enabled,
+  });
+}
+
+/**
+ * FR-5.4. The API refuses a week that has already finished (422 PAST_WEEK),
+ * because a backwards-scrolling grid is a per-person attendance record rather
+ * than a coordination tool. The client keeps the "previous week" control
+ * disabled at that boundary so the refusal is never reached by accident.
+ */
+export function useTeamWeek(teamId: string | undefined, start: string) {
+  return useQuery({
+    queryKey: keys.teamWeek(teamId ?? "", start),
+    queryFn: () => api<TeamWeek>(`/teams/${teamId}/week?start=${start}`),
+    enabled: Boolean(teamId && start),
+    staleTime: 30 * 1000,
+  });
 }

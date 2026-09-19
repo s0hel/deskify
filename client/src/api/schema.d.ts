@@ -273,6 +273,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Teams */
+        get: operations["my_teams_teams_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/teams/{team_id}/week": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Team Week
+         * @description FR-5.4 -- a week grid of the team's PLANNED presence.
+         *
+         *     Deliberately forward-only. A grid that scrolls backwards stops being a
+         *     coordination tool and becomes a per-person attendance record, which is
+         *     exactly what FR-9.5 and TDD §13.3 rule out as a product position. The
+         *     current week is allowed because it contains today; earlier weeks are not.
+         */
+        get: operations["team_week_teams__team_id__week_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/privacy": {
         parameters: {
             query?: never;
@@ -491,6 +533,37 @@ export interface components {
             /** Ordinal */
             ordinal: number;
         };
+        /** GridCell */
+        GridCell: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "office" | "remote" | "leave" | "none";
+            /** Resource Name */
+            resource_name?: string | null;
+        };
+        /** GridRow */
+        GridRow: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Display Name */
+            display_name: string;
+            /** Is You */
+            is_you: boolean;
+            /** Cells */
+            cells: components["schemas"]["GridCell"][];
+            /** Office Days */
+            office_days: number;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -632,6 +705,32 @@ export interface components {
             capacity_cap: number | null;
             /** Check In Enabled */
             check_in_enabled: boolean;
+        };
+        /** TeamOut */
+        TeamOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Member Count */
+            member_count: number;
+            /** Anchor Days */
+            anchor_days: number[];
+        };
+        /** TeamWeekOut */
+        TeamWeekOut: {
+            team: components["schemas"]["TeamOut"];
+            /** Days */
+            days: string[];
+            /** Anchor Days */
+            anchor_days: number[];
+            /** Rows */
+            rows: components["schemas"]["GridRow"][];
+            /** In Per Day */
+            in_per_day: number[];
         };
         /** TokenRequest */
         TokenRequest: {
@@ -1168,6 +1267,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PersonDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_teams_teams_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    team_week_teams__team_id__week_get: {
+        parameters: {
+            query?: {
+                start?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                team_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamWeekOut"];
                 };
             };
             /** @description Validation Error */

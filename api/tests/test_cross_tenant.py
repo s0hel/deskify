@@ -83,6 +83,7 @@ async def test_cannot_touch_another_orgs_objects(method, path, db, client):
         "{site_id}": globex["site"].id,
         "{floor_id}": globex["floor"].id,
         "{user_id}": globex["user"].id,
+        "{team_id}": globex["team"].id,
         "{booking_id}": uuid.uuid4(),
     }
     url = path

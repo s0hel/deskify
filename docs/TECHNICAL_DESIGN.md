@@ -1115,6 +1115,24 @@ Default 13 months for identifiable rows. The nightly purge deletes `booking`, `b
 rollup exists. Audit log retention is configured separately and longer, because it is a compliance
 artifact.
 
+### 13.2.1 The team week grid is forward-only (FR-5.4)
+
+Added 2026-09-19, and it belongs in this section rather than under coordination.
+
+`GET /teams/{id}/week` refuses a week that has already finished, returning 422 `PAST_WEEK`
+with the earliest week it will serve. The client's "previous week" control stops at the
+same boundary, so the refusal is a guard rail rather than an error someone hits.
+
+This is a product position, not a missing feature. The grid shows *planned* presence so a
+team can coordinate; the same grid scrolled backwards is a per-person attendance record,
+which §13.3 and FR-9.5 rule out. The current week is allowed because it contains today —
+the line is drawn at weeks that have ended, not at days that have passed.
+
+A team lead who wants attendance history is asking for something this product deliberately
+does not provide. If that requirement ever becomes real, it should arrive as an explicit,
+separately-argued decision with its own privacy review, not as a quiet relaxation of the
+date check.
+
 ### 13.3 The aggregation floor (FR-9.5)
 
 Manager-facing team analytics are aggregated, never per-person. This is a product position, not a
@@ -1343,6 +1361,8 @@ measured retroactively.
 | D18 | Guard errors never echo the value they rejected | §15.4 — these messages reach logs and crash reporters |
 | D19 | One presence-visibility function, applied in the query | §15.5 — a serializer-level filter leaks into counts and logs |
 | D20 | A hidden colleague is 404, not 403 | §15.5 — 403 confirms they exist and have hidden themselves |
+| D21 | The team week grid is forward-only | §13.2.1 — a backwards grid is an attendance record, not a coordination tool |
+| D22 | Team member counts include only visible members | §15.5 — counting hidden people lets a viewer infer that someone is hidden |
 | D2 | `site_id` + `local_date` denormalized onto `booking` | §3.4 — serves the single timezone rule |
 | D3 | `jsonb` attributes + GIN, not an EAV table | §3.2 — open-ended filters, no join on the hot path |
 | D4 | Backend-for-frontend OIDC | §6.1 — secrets server-side, one token format, SAML later is server-only |

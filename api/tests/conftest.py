@@ -29,7 +29,16 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app.config import settings
-from app.models import AppUser, Floor, Organization, Resource, Site, Zone
+from app.models import (
+    AppUser,
+    Floor,
+    GroupMember,
+    Organization,
+    Resource,
+    Site,
+    UserGroup,
+    Zone,
+)
 
 TABLES = (
     "booking", "site_day_capacity", "resource", "zone", "floor",
@@ -132,9 +141,19 @@ async def make_org(s, name="Acme", *, capacity_cap=None, tz="Europe/Berlin", des
                    display_name="Priya")
     s.add_all([*made, user])
     await s.flush()
+
+    # Every fixture org has one team containing its default user, so tests that
+    # need a team id (and the cross-tenant harness) have one to aim at.
+    team = UserGroup(
+        organization_id=org.id, name="Core", kind="team", anchor_days=[2, 4]
+    )
+    s.add(team)
+    await s.flush()
+    s.add(GroupMember(organization_id=org.id, group_id=team.id, user_id=user.id))
+    await s.flush()
     await s.commit()
     return {"org": org, "site": site, "floor": floor, "zone": zone,
-            "desks": made, "desk": made[0], "user": user}
+            "desks": made, "desk": made[0], "user": user, "team": team}
 
 
 async def add_person(

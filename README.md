@@ -38,6 +38,7 @@ run, so `make test` never empties the tenant a running app is showing you.
 | Client wired to the API: sign-in, real floors, booking, cancel | Done |
 | Designed UI: tokens, Today hero, week strip, circle plan, bottom sheets | Done |
 | Team, colleague and profile screens; presence privacy (FR-5.1/5.2/5.5/5.6) | Done |
+| Team week grid with anchor days (FR-5.4) | Done |
 | Generated TypeScript client | Done — `client/src/api/schema.d.ts` |
 | OIDC end to end for one IdP | **Blocked on IdP credentials** (T6) |
 | 300-desk floor-plan spike on device | **Harness ready, gate not yet run on hardware** |
@@ -109,6 +110,14 @@ The seed sets this up so it is visible in the demo, not just in tests: Dana is
 `team`-only in Design, and Jo is `nobody`. Sign in as Priya (Engineering) and neither
 appears on the Team screen.
 
+The team week grid inherits all of it, and adds one rule: **member counts include only
+people you can see**. Counting a hidden teammate would let you infer that someone is
+hidden, which is the same disclosure by arithmetic.
+
+The grid is also **forward-only** — `GET /teams/{id}/week` refuses a finished week with
+422 `PAST_WEEK`. That is a product position (TDD §13.2.1): a grid you can scroll backwards
+through is a per-person attendance record, which FR-9.5 rules out.
+
 ## The tests that matter
 
 Four carry disproportionate weight (TDD §16). They are the reason to trust the rest.
@@ -133,6 +142,8 @@ cd api && uv run pytest tests/test_concurrency.py -q
   with the default signing key.
 - **`test_presence_privacy.py`** — all three visibility settings, the org kill switch, and
   the tenant boundary. Deleting the filter makes six of them fail.
+- **`test_team_week.py`** — the grid's privacy inheritance (no row *and* no count for a
+  hidden teammate) and the forward-only boundary.
 
 ---
 

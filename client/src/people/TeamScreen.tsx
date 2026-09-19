@@ -4,6 +4,7 @@ import { usePeople, type DayAvailability, type Person } from "../api/hooks";
 import { WeekStrip } from "../booking/WeekStrip";
 import { Chevron } from "../ui/bits";
 import { Avatar } from "./Avatar";
+import { WeekGrid } from "./WeekGrid";
 
 /**
  * FR-5.1 and FR-5.4 -- who is in, grouped so your own team reads first.
@@ -26,8 +27,9 @@ export function TeamScreen({
   onPickDay: (iso: string) => void;
   onOpenPerson: (userId: string) => void;
 }) {
+  const [view, setView] = useState<"day" | "week">("day");
   const [query, setQuery] = useState("");
-  const people = usePeople(selected, true);
+  const people = usePeople(selected, view === "day");
 
   const { mine, others, away } = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -44,6 +46,71 @@ export function TeamScreen({
 
   return (
     <div className="scroll">
+      <div className="pad" style={{ marginBottom: 12 }}>
+        <div className="seg seg--flush">
+          <button aria-pressed={view === "day"} onClick={() => setView("day")}>
+            Who's in
+          </button>
+          <button aria-pressed={view === "week"} onClick={() => setView("week")}>
+            Week
+          </button>
+        </div>
+      </div>
+
+      {view === "week" ? (
+        <>
+          <WeekGrid todayIso={todayIso} onOpenPerson={onOpenPerson} />
+          <div style={{ height: 24 }} />
+        </>
+      ) : (
+        <DayView
+          days={days}
+          selected={selected}
+          todayIso={todayIso}
+          onPickDay={onPickDay}
+          onOpenPerson={onOpenPerson}
+          query={query}
+          setQuery={setQuery}
+          loading={people.isLoading}
+          mine={mine}
+          others={others}
+          away={away}
+          total={total}
+        />
+      )}
+    </div>
+  );
+}
+
+function DayView({
+  days,
+  selected,
+  todayIso,
+  onPickDay,
+  onOpenPerson,
+  query,
+  setQuery,
+  loading,
+  mine,
+  others,
+  away,
+  total,
+}: {
+  days: DayAvailability[];
+  selected: string;
+  todayIso: string;
+  onPickDay: (iso: string) => void;
+  onOpenPerson: (userId: string) => void;
+  query: string;
+  setQuery: (q: string) => void;
+  loading: boolean;
+  mine: Person[];
+  others: Person[];
+  away: Person[];
+  total: number;
+}) {
+  return (
+    <>
       <div className="pad">
         <input
           className="search"
@@ -58,7 +125,7 @@ export function TeamScreen({
       <WeekStrip days={days} selected={selected} todayIso={todayIso} onPick={onPickDay} />
 
       <p className="meta pad" style={{ marginTop: 10 }}>
-        {people.isLoading
+        {loading
           ? "Loading…"
           : total === 0
             ? "Nobody has booked a desk yet."
@@ -78,7 +145,7 @@ export function TeamScreen({
       {away.length > 0 && <Group title="Away" people={away} onOpen={onOpenPerson} />}
 
       <div style={{ height: 24 }} />
-    </div>
+    </>
   );
 }
 
