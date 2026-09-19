@@ -6,14 +6,48 @@ fixture (TDD §9.3, risk R8) rather than a toy.
 """
 
 import asyncio
+from datetime import timedelta
 
 from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import Range
 
 from app.db import SessionLocal
-from app.models import AppUser, EmailDomain, Floor, Organization, Resource, Site, Zone
+from app.models import (
+    AppUser,
+    Booking,
+    DayDeclaration,
+    EmailDomain,
+    Floor,
+    GroupMember,
+    Organization,
+    Resource,
+    Site,
+    UserGroup,
+    Zone,
+)
 
 PLAN_W, PLAN_H = 1600, 1000
 DESKS = 300
+
+
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+from sqlalchemy import select
+
+from app.timezone import local_today
+
+
+def _at(day, hour: int, timezone: str) -> datetime:
+    return datetime(day.year, day.month, day.day, hour, tzinfo=ZoneInfo(timezone))
+
+
+async def _desks(s, org_id):
+    return (
+        await s.execute(
+            select(Resource).where(Resource.organization_id == org_id, Resource.kind == "desk")
+        )
+    ).scalars().all()
 
 
 async def seed() -> None:
@@ -77,18 +111,105 @@ async def seed() -> None:
                 plan_x=1400.0, plan_y=120.0 + i * 180,
             ))
 
-        s.add_all([
-            AppUser(organization_id=org.id, email="priya@northwind.example",
-                    display_name="Priya", home_site_id=site.id),
-            AppUser(organization_id=org.id, email="marcus@northwind.example",
-                    display_name="Marcus", home_site_id=site.id),
-        ])
+        # People, with a spread of visibility settings so the privacy rule is
+        # visible in the demo rather than only in the tests.
+        people = [
+            ("Priya Raman", "priya", "everyone", ("Engineering",)),
+            ("Marcus Hale", "marcus", "everyone", ("Engineering",)),
+            ("Ana Torres", "ana", "everyone", ("Engineering", "Fire Wardens")),
+            ("Dana Okafor", "dana", "team", ("Design",)),
+            ("Sam Whitfield", "sam", "team", ("Engineering",)),
+            ("Jo Lindqvist", "jo", "nobody", ("Design",)),
+            ("Ren Takahashi", "ren", "everyone", ("Sales",)),
+            ("Nadia Farouk", "nadia", "everyone", ("Sales", "Fire Wardens")),
+        ]
+
+        groups: dict[str, UserGroup] = {}
+        users: dict[str, AppUser] = {}
+        for display, handle, visibility, group_names in people:
+            user = AppUser(
+                organization_id=org.id,
+                email=f"{handle}@northwind.example",
+                display_name=display,
+                home_site_id=site.id,
+                presence_visibility=visibility,
+            )
+            s.add(user)
+            await s.flush()
+            users[handle] = user
+
+            for name in group_names:
+                group = groups.get(name)
+                if group is None:
+                    group = UserGroup(organization_id=org.id, name=name, kind="team")
+                    s.add(group)
+                    await s.flush()
+                    groups[name] = group
+                s.add(
+                    GroupMember(
+                        organization_id=org.id, group_id=group.id, user_id=user.id
+                    )
+                )
+
+        await s.flush()
+
+        # A week with something in it. Without this the team screen is a list of
+        # empty days, which demos nothing.
+        today = local_today(site.timezone)
+        desks_by_name = {r.name: r for r in await _desks(s, org.id)}
+
+        plans = [
+            ("marcus", 0, "4F-A-023"),
+            ("ana", 0, "4F-A-045"),
+            ("ren", 0, "4F-A-112"),
+            ("marcus", 1, "4F-A-023"),
+            ("nadia", 1, "4F-A-088"),
+            ("ana", 2, "4F-A-045"),
+            ("sam", 2, "4F-A-067"),
+            ("marcus", 3, "4F-A-023"),
+        ]
+        for handle, offset, desk_name in plans:
+            day = today + timedelta(days=offset)
+            desk = desks_by_name[desk_name]
+            s.add(
+                Booking(
+                    organization_id=org.id,
+                    site_id=site.id,
+                    resource_id=desk.id,
+                    user_id=users[handle].id,
+                    during=Range(
+                        _at(day, 9, site.timezone), _at(day, 17, site.timezone), bounds="[)"
+                    ),
+                    local_date=day,
+                    status="confirmed",
+                    created_by=users[handle].id,
+                )
+            )
+
+        for handle, offset, kind in [
+            ("dana", 0, "remote"),
+            ("nadia", 0, "leave"),
+            ("marcus", 2, "remote"),
+            ("ren", 1, "remote"),
+        ]:
+            s.add(
+                DayDeclaration(
+                    organization_id=org.id,
+                    user_id=users[handle].id,
+                    local_date=today + timedelta(days=offset),
+                    kind=kind,
+                )
+            )
+
         await s.commit()
 
         print(f"seeded org={org.id}")
         print(f"       site={site.id} ({site.name}, {site.timezone})")
         print(f"       floor={floor.id} plan={PLAN_W}x{PLAN_H} desks={DESKS} rooms=3")
+        print(f"       {len(people)} people in {len(groups)} teams, "
+              f"{len(plans)} bookings, 4 declarations")
         print("       sign in as priya@northwind.example")
+        print("       (jo@northwind.example is set to 'nobody' -- she should not appear)")
 
 
 if __name__ == "__main__":

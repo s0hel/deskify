@@ -226,6 +226,95 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whos In
+         * @description FR-5.1 -- who is booked at a site on a given day.
+         *
+         *     The visibility filter is applied to the booking query itself, so a hidden
+         *     colleague is absent from the result rather than removed from it.
+         */
+        get: operations["whos_in_people_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/people/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Person Detail
+         * @description FR-5.2 -- one colleague's upcoming office days.
+         *
+         *     A colleague whose presence is hidden from you returns 404, not 403. A 403
+         *     would confirm that the person exists and has hidden themselves, which is
+         *     itself a disclosure (same reasoning as TDD §15.1).
+         */
+        get: operations["person_detail_people__user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/privacy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Privacy
+         * @description FR-5.6.
+         */
+        put: operations["set_privacy_me_privacy_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/declarations/{on}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Declaration
+         * @description FR-5.5 -- declare a day without booking a desk, so the team grid is
+         *     complete rather than merely silent about you.
+         */
+        put: operations["set_declaration_me_declarations__on__put"];
+        post?: never;
+        /** Clear Declaration */
+        delete: operations["clear_declaration_me_declarations__on__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -313,6 +402,24 @@ export interface components {
             my_resource_name: string | null;
             /** Declaration */
             declaration: string | null;
+        };
+        /** DeclarationIn */
+        DeclarationIn: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "office" | "remote" | "leave";
+        };
+        /** DeclarationOut */
+        DeclarationOut: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Kind */
+            kind: string;
         };
         /** DiscoverRequest */
         DiscoverRequest: {
@@ -405,6 +512,65 @@ export interface components {
             email: string;
             /** Display Name */
             display_name: string;
+            /** Locale */
+            locale: string;
+            /** Presence Visibility */
+            presence_visibility: string;
+            /** Teams */
+            teams: string[];
+        };
+        /** PersonDetailOut */
+        PersonDetailOut: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Display Name */
+            display_name: string;
+            /** Is You */
+            is_you: boolean;
+            /** Shared Teams */
+            shared_teams: string[];
+            /** In Office Days */
+            in_office_days: number;
+            /** Horizon Days */
+            horizon_days: number;
+            /** Schedule */
+            schedule: components["schemas"]["ScheduleDay"][];
+        };
+        /** PersonOut */
+        PersonOut: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Display Name */
+            display_name: string;
+            /** Is You */
+            is_you: boolean;
+            /** Shared Teams */
+            shared_teams: string[];
+            /** Resource Name */
+            resource_name?: string | null;
+            /** Floor Name */
+            floor_name?: string | null;
+            /** Declaration */
+            declaration?: string | null;
+        };
+        /** PrivacyIn */
+        PrivacyIn: {
+            /**
+             * Presence Visibility
+             * @enum {string}
+             */
+            presence_visibility: "everyone" | "team" | "nobody";
+        };
+        /** PrivacyOut */
+        PrivacyOut: {
+            /** Presence Visibility */
+            presence_visibility: string;
         };
         /** ResourceOut */
         ResourceOut: {
@@ -429,6 +595,27 @@ export interface components {
             plan_x: number | null;
             /** Plan Y */
             plan_y: number | null;
+        };
+        /** ScheduleDay */
+        ScheduleDay: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "office" | "remote" | "leave" | "none";
+            /** Resource Id */
+            resource_id?: string | null;
+            /** Resource Name */
+            resource_name?: string | null;
+            /** Floor Id */
+            floor_id?: string | null;
+            /** Floor Name */
+            floor_name?: string | null;
         };
         /** SiteOut */
         SiteOut: {
@@ -475,6 +662,18 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** WhosInOut */
+        WhosInOut: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** In Office */
+            in_office: components["schemas"]["PersonOut"][];
+            /** Away */
+            away: components["schemas"]["PersonOut"][];
         };
     };
     responses: never;
@@ -893,6 +1092,175 @@ export interface operations {
             };
             path: {
                 booking_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    whos_in_people_get: {
+        parameters: {
+            query: {
+                on: string;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhosInOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    person_detail_people__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_privacy_me_privacy_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrivacyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_declaration_me_declarations__on__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                on: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeclarationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeclarationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_declaration_me_declarations__on__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                on: string;
             };
             cookie?: never;
         };

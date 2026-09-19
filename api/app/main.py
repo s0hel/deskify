@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.errors import DeskflowError, handle
-from app.routers import auth, core
+from app.routers import auth, core, people
 
 structlog.configure(processors=[structlog.processors.add_log_level,
                                 structlog.processors.TimeStamper(fmt="iso"),
@@ -27,6 +27,7 @@ app.add_middleware(
 app.add_exception_handler(DeskflowError, handle)
 app.include_router(auth.router)
 app.include_router(core.router)
+app.include_router(people.router)
 
 # /auth/dev-sign-in mints a token for any user from an email alone. It is
 # mounted only in dev, so in every other environment the route genuinely does

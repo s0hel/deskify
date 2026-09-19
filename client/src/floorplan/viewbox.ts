@@ -87,9 +87,11 @@ export function clampViewBox(vb: ViewBox, plan: Size, container: Size): ViewBox 
     w = h * aspect;
   }
 
-  // Allow a quarter-view of slack on each side, so edge desks are reachable.
-  const slackX = w * 0.25;
-  const slackY = h * 0.25;
+  // A little slack on each side so desks at the plan's edge can be centred and
+  // tapped. Kept small: more than this and a focused desk sits against a wide
+  // empty band, which reads as a rendering bug.
+  const slackX = w * 0.12;
+  const slackY = h * 0.12;
   return {
     w,
     h,

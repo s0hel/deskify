@@ -285,6 +285,32 @@ class Job(Base):
     )
 
 
+class UserGroup(Base):
+    """Teams, departments, or arbitrary sets. Policies, zone permissions and the
+    "who's in" views all hang off these (PRD §6)."""
+
+    __tablename__ = "user_group"
+    id: Mapped[uuid.UUID] = _pk()
+    organization_id: Mapped[uuid.UUID] = _org()
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    kind: Mapped[str] = mapped_column(Text, nullable=False, server_default="team")
+    __table_args__ = (
+        UniqueConstraint("organization_id", "name", name="user_group_org_name_key"),
+        CheckConstraint("kind IN ('team','department','custom')", name="user_group_kind_check"),
+    )
+
+
+class GroupMember(Base):
+    __tablename__ = "group_member"
+    organization_id: Mapped[uuid.UUID] = _org()
+    group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("user_group.id"), primary_key=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("app_user.id"), primary_key=True
+    )
+
+
 class DayDeclaration(Base):
     """FR-5.5. One table serving three requirements: the team grid (FR-5.4),
     non-attendance (FR-5.5), and assigned-desk release (FR-6.7)."""

@@ -14,7 +14,16 @@ from app.booking_service import create_booking
 from app.db import get_session
 from app.deps import Principal, current_principal, tenant_repo
 from app.errors import NotFound
-from app.models import AppUser, Booking, DayDeclaration, Floor, Resource, Site
+from app.models import (
+    AppUser,
+    Booking,
+    DayDeclaration,
+    Floor,
+    GroupMember,
+    Resource,
+    Site,
+    UserGroup,
+)
 from app.policy import evaluate
 from app.repository import TenantRepository
 from app.timezone import local_today, parse_opening_hours, slot_bounds
@@ -66,6 +75,9 @@ class MeOut(BaseModel):
     organization_id: uuid.UUID
     email: str
     display_name: str
+    locale: str
+    presence_visibility: str
+    teams: list[str]
 
 
 @router.get("/me", response_model=MeOut)
@@ -73,11 +85,19 @@ async def me(principal: Me, repo: Repo) -> MeOut:
     user = await repo.get(AppUser, principal.user_id)
     if user is None:
         raise NotFound("user")
+
+    memberships = await repo.list(GroupMember, GroupMember.user_id == user.id)
+    mine = {m.group_id for m in memberships}
+    teams = sorted(g.name for g in await repo.list(UserGroup) if g.id in mine)
+
     return MeOut(
         user_id=user.id,
         organization_id=user.organization_id,
         email=user.email,
         display_name=user.display_name,
+        locale=user.locale,
+        presence_visibility=user.presence_visibility,
+        teams=teams,
     )
 
 

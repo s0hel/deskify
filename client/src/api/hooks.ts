@@ -64,6 +64,53 @@ export interface FloorState {
   states: Record<string, ResourceState>;
 }
 
+export interface Person {
+  user_id: string;
+  display_name: string;
+  is_you: boolean;
+  shared_teams: string[];
+  resource_name: string | null;
+  floor_name: string | null;
+  declaration: string | null;
+}
+
+export interface WhosIn {
+  date: string;
+  in_office: Person[];
+  away: Person[];
+}
+
+export interface ScheduleDay {
+  date: string;
+  kind: "office" | "remote" | "leave" | "none";
+  resource_id: string | null;
+  resource_name: string | null;
+  floor_id: string | null;
+  floor_name: string | null;
+}
+
+export interface PersonDetail {
+  user_id: string;
+  display_name: string;
+  is_you: boolean;
+  shared_teams: string[];
+  in_office_days: number;
+  horizon_days: number;
+  schedule: ScheduleDay[];
+}
+
+export type Visibility = "everyone" | "team" | "nobody";
+
+export interface Me {
+  user_id: string;
+  organization_id: string;
+  email: string;
+  display_name: string;
+  locale: string;
+  presence_visibility: Visibility;
+  teams: string[];
+}
+
 export interface Booking {
   id: string;
   resource_id: string;
@@ -76,6 +123,8 @@ export const keys = {
   me: ["me"] as const,
   sites: ["sites"] as const,
   days: (siteId: string) => ["days", siteId] as const,
+  people: (on: string) => ["people", on] as const,
+  person: (id: string) => ["person", id] as const,
   floors: (siteId: string) => ["floors", siteId] as const,
   floor: (floorId: string) => ["floor", floorId] as const,
   floorState: (floorId: string, on: string) => ["floorState", floorId, on] as const,
@@ -204,4 +253,71 @@ export function useMyBookings(enabled: boolean) {
     queryFn: () => api<Booking[]>("/bookings"),
     enabled,
   });
+}
+
+
+/** FR-5.1 -- who is in on a day. Privacy filtering happens server-side. */
+export function usePeople(on: string, enabled: boolean) {
+  return useQuery({
+    queryKey: keys.people(on),
+    queryFn: () => api<WhosIn>(`/people?on=${on}`),
+    enabled: enabled && Boolean(on),
+    staleTime: 30 * 1000,
+  });
+}
+
+/** FR-5.2. A colleague who has hidden their days returns 404, and the UI says
+ *  so plainly rather than pretending they do not exist. */
+export function usePerson(userId: string | null) {
+  return useQuery({
+    queryKey: keys.person(userId ?? ""),
+    queryFn: () => api<PersonDetail>(`/people/${userId}`),
+    enabled: Boolean(userId),
+  });
+}
+
+export function useMe(enabled: boolean) {
+  return useQuery({
+    queryKey: keys.me,
+    queryFn: () => api<Me>("/me"),
+    enabled,
+  });
+}
+
+/** FR-5.6. */
+export function useSetVisibility() {
+  const qc = useQueryClient();
+  return useMutation<{ presence_visibility: Visibility }, ApiError, Visibility>({
+    mutationFn: (presence_visibility) =>
+      api("/me/privacy", {
+        method: "PUT",
+        body: JSON.stringify({ presence_visibility }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.me });
+      // Your own change alters what everyone else sees, so drop those too.
+      qc.invalidateQueries({ queryKey: ["people"] });
+      qc.invalidateQueries({ queryKey: ["person"] });
+    },
+  });
+}
+
+/** FR-5.5 -- declare a day without booking, so the team view is complete. */
+export function useSetDeclaration() {
+  const qc = useQueryClient();
+  return useMutation<unknown, ApiError, { on: string; kind: "office" | "remote" | "leave" | null }>(
+    {
+      mutationFn: ({ on, kind }) =>
+        kind === null
+          ? api(`/me/declarations/${on}`, { method: "DELETE" })
+          : api(`/me/declarations/${on}`, {
+              method: "PUT",
+              body: JSON.stringify({ kind }),
+            }),
+      onSettled: () => {
+        qc.invalidateQueries({ queryKey: ["days"] });
+        qc.invalidateQueries({ queryKey: ["people"] });
+      },
+    },
+  );
 }

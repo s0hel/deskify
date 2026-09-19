@@ -45,6 +45,8 @@ export interface FloorPlanProps {
   planImageUrl?: string;
   onSelect?: (deskId: string) => void;
   editable?: boolean;
+  /** Centre the view on this resource and ring it -- used by "Sit near". */
+  focusResourceId?: string | null;
 }
 
 const DESK_R = 16;
@@ -58,6 +60,7 @@ export function FloorPlan({
   planImageUrl,
   onSelect,
   editable = false,
+  focusResourceId = null,
 }: FloorPlanProps) {
   const wrapper = useRef<HTMLDivElement>(null);
   const svg = useRef<SVGSVGElement>(null);
@@ -69,11 +72,11 @@ export function FloorPlan({
     () => ({ w: planWidth, h: planHeight }),
     [planWidth, planHeight],
   );
-  const lastSize = useRef<Size | null>(null);
+  // State, not a ref: the focus effect below has to re-run once the container
+  // has actually been measured, and label legibility depends on it too.
+  const [size, setSize] = useState<Size | null>(null);
   const [viewBox, setViewBox] = useState<ViewBox>({ x: 0, y: 0, w: planWidth, h: planHeight });
-  const withLabels = lastSize.current
-    ? shouldRenderLabels(viewBox, lastSize.current)
-    : false;
+  const withLabels = size ? shouldRenderLabels(viewBox, size) : false;
 
   // Fill the container on mount and whenever it is resized -- a rotated phone
   // or a split-screen pane must not leave the plan letterboxed.
@@ -84,10 +87,12 @@ export function FloorPlan({
     const observer = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
       if (width < 1 || height < 1) return;
-      const prev = lastSize.current;
-      if (prev && Math.abs(prev.w - width) < 1 && Math.abs(prev.h - height) < 1) return;
-      lastSize.current = { w: width, h: height };
-      setViewBox(coverViewBox(plan, lastSize.current));
+      setSize((prev) => {
+        if (prev && Math.abs(prev.w - width) < 1 && Math.abs(prev.h - height) < 1) return prev;
+        const next = { w: width, h: height };
+        setViewBox(coverViewBox(plan, next));
+        return next;
+      });
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -126,6 +131,24 @@ export function FloorPlan({
     el.style.willChange = "";
     setViewBox(next); // Rule 3: the one state update
   }, [viewBox, plan]);
+
+  // Centre on a colleague's desk when arriving from their schedule. Runs only
+  // when the target changes, so it never fights a gesture in progress.
+  useEffect(() => {
+    if (!focusResourceId || !size) return;
+    const target = desks.find((d) => d.id === focusResourceId);
+    if (!target) return;
+    const aspect = size.w / size.h;
+    const w = Math.min(plan.w, 460);
+    const h = w / aspect;
+    setViewBox(
+      clampViewBox(
+        { x: target.plan_x - w / 2, y: target.plan_y - h / 2, w, h },
+        plan,
+        size,
+      ),
+    );
+  }, [focusResourceId, desks, plan, size]);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     (e.target as Element).setPointerCapture?.(e.pointerId);
@@ -224,11 +247,15 @@ export function FloorPlan({
             Drawn in its own layer and never hit-tested. */}
         <g className="rings" pointerEvents="none">
           {desks
-            .filter((d) => states[d.id] === "mine")
+            .filter((d) => states[d.id] === "mine" || d.id === focusResourceId)
             .map((d) => (
               <circle
                 key={d.id}
-                className="desk-ring"
+                className={
+                  d.id === focusResourceId && states[d.id] !== "mine"
+                    ? "desk-ring desk-ring--focus"
+                    : "desk-ring"
+                }
                 cx={d.plan_x}
                 cy={d.plan_y}
                 r={(d.kind === "room" ? ROOM_R : DESK_R) + 7}

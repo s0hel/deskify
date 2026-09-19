@@ -37,6 +37,7 @@ run, so `make test` never empties the tenant a running app is showing you.
 | React + Capacitor client, floor plan, list view | Done |
 | Client wired to the API: sign-in, real floors, booking, cancel | Done |
 | Designed UI: tokens, Today hero, week strip, circle plan, bottom sheets | Done |
+| Team, colleague and profile screens; presence privacy (FR-5.1/5.2/5.5/5.6) | Done |
 | Generated TypeScript client | Done — `client/src/api/schema.d.ts` |
 | OIDC end to end for one IdP | **Blocked on IdP credentials** (T6) |
 | 300-desk floor-plan spike on device | **Harness ready, gate not yet run on hardware** |
@@ -96,6 +97,18 @@ Two patterns are worth knowing before changing anything:
   a dead end. The machine code sits in small type at the bottom, addressed to support
   rather than to the person reading it.
 
+## Presence privacy
+
+Three settings — everyone, my teams only, nobody — plus an org-wide kill switch in
+`organization.settings.presence_enabled`. The rule lives in exactly one function,
+`app/presence.py`, and is applied **in the query**: a hidden colleague is absent from the
+result, not stripped from it afterwards. A colleague you cannot see returns 404 rather
+than 403, because 403 would confirm they exist and have hidden themselves.
+
+The seed sets this up so it is visible in the demo, not just in tests: Dana is
+`team`-only in Design, and Jo is `nobody`. Sign in as Priya (Engineering) and neither
+appears on the Team screen.
+
 ## The tests that matter
 
 Four carry disproportionate weight (TDD §16). They are the reason to trust the rest.
@@ -118,6 +131,8 @@ cd api && uv run pytest tests/test_concurrency.py -q
 - **`test_dev_endpoint_isolation.py`** — starts real subprocesses and asserts
   `/auth/dev-sign-in` returns 404 in prod and staging, and that the app refuses to boot
   with the default signing key.
+- **`test_presence_privacy.py`** — all three visibility settings, the org kill switch, and
+  the tenant boundary. Deleting the filter makes six of them fail.
 
 ---
 

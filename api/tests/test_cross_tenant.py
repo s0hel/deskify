@@ -23,9 +23,14 @@ NO_OBJECT_ID = {
     "/auth/discover",   # answers for a domain, never a user (TDD §15.3)
     "/auth/token",      # pre-authentication
     "/me",              # scoped to the caller by construction
+    "/me/privacy",      # ditto
     "/sites",           # collection: tenancy asserted separately below
     "/bookings",        # collection: ditto
     "/bookings/validate",
+    "/people",          # collection, privacy-filtered; see test_presence_privacy.py
+    # The path parameter is a DATE, and the row is always the caller's own.
+    # There is no other tenant's object to aim at.
+    "/me/declarations/{on}",
 }
 
 
@@ -77,13 +82,25 @@ async def test_cannot_touch_another_orgs_objects(method, path, db, client):
     victim_ids = {
         "{site_id}": globex["site"].id,
         "{floor_id}": globex["floor"].id,
+        "{user_id}": globex["user"].id,
         "{booking_id}": uuid.uuid4(),
     }
     url = path
     for placeholder, value in victim_ids.items():
         url = url.replace(placeholder, str(value))
 
-    params = {"on": "2026-10-02"} if url.endswith("/state") else None
+    # A placeholder we have no victim id for would send a literal "{id}", get a
+    # 422, and never reach the tenancy check -- a test that passes by accident.
+    assert "{" not in url, (
+        f"{path} has a path parameter with no victim id. Add one to victim_ids, "
+        f"or list the path in NO_OBJECT_ID with a reason."
+    )
+
+    params = (
+        {"on": "2026-10-02"}
+        if url.endswith(("/state", "/people"))
+        else None
+    )
 
     async with client as c:
         resp = await c.request(method, url, headers=headers, params=params)

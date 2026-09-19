@@ -1242,7 +1242,46 @@ The general principle, worth applying to every setting added later: **a missing
 configuration value must fail closed.** The cost of a noisy startup failure is minutes; the
 cost of a silent insecure default is a breach.
 
-### 15.5 Data handled with care
+### 15.5 Presence visibility
+
+Built 2026-09-19 (FR-5.6, and the answer to PRD Q6).
+
+`app/presence.py` is the only place the rule is expressed, and every endpoint that can
+reveal where or when a named person is in the office goes through it:
+
+| Setting | Who sees you |
+|---|---|
+| `everyone` | Anyone in the organization |
+| `team` | Only people sharing a group with you |
+| `nobody` | No one — but you still see yourself, and you can still book |
+
+Above all three sits `organization.settings.presence_enabled`, the org-wide kill switch
+that PRD §5.3 commits to for works-council sign-off. It is not a UI toggle; it is a
+setting that makes every colleague view collapse to just the viewer.
+
+Two implementation rules, both load-bearing:
+
+- **The filter runs in the query, never the serializer.** A hidden colleague must be
+  absent from the result set, not removed from it on the way out — filtering afterwards is
+  how presence leaks into counts, pagination totals and debug logs.
+- **A hidden colleague returns 404, not 403.** A 403 confirms the person exists and has
+  hidden themselves, which is itself a disclosure. Same reasoning as §15.1.
+
+`tests/test_presence_privacy.py` covers all three settings, the kill switch, the tenant
+boundary, and the cases that are easy to get wrong: sharing *any* one group is enough;
+hiding from colleagues must not hide your own desk from you; and changing the setting
+takes effect on the next read rather than the next session. Removing the filter makes six
+of those fail, which is how I know they are not vacuous.
+
+**An obligation this creates.** The UI tells people that "Nobody" means they will not
+appear in anyone's team view *or on the plan*. That is true today only because
+`/floors/{id}/state` returns free/booked/mine and carries no identity. The moment the plan
+shows who sits where — FR-5.7, initials, avatars, a sit-near marker — that endpoint must
+filter through the same function, or the product will be lying in a sentence a works
+council has read. The note is repeated at the top of `app/presence.py`, where someone
+building FR-5.7 will actually be looking.
+
+### 15.6 Data handled with care
 
 - Raw coordinates are never stored or logged — only the geofence boolean (§8.2).
 - `presence_visibility` is applied in the query, not the serializer (§5.2).
@@ -1302,6 +1341,8 @@ measured retroactively.
 | D16 | Dev-only routes are mounted conditionally, not gated inside the handler | §15.4 — a refactor can drop a check; it cannot re-register a router |
 | D17 | Database credentials guarded on strength, not on host | §15.4 — a localhost database in prod is legitimate; a `deskflow:deskflow` one is not |
 | D18 | Guard errors never echo the value they rejected | §15.4 — these messages reach logs and crash reporters |
+| D19 | One presence-visibility function, applied in the query | §15.5 — a serializer-level filter leaks into counts and logs |
+| D20 | A hidden colleague is 404, not 403 | §15.5 — 403 confirms they exist and have hidden themselves |
 | D2 | `site_id` + `local_date` denormalized onto `booking` | §3.4 — serves the single timezone rule |
 | D3 | `jsonb` attributes + GIN, not an EAV table | §3.2 — open-ended filters, no join on the hot path |
 | D4 | Backend-for-frontend OIDC | §6.1 — secrets server-side, one token format, SAML later is server-only |

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ApiError } from "./api/client";
 import {
@@ -8,10 +8,12 @@ import {
   useFloor,
   useFloorState,
   useFloors,
+  useSetDeclaration,
   useSites,
   type ApiResource,
 } from "./api/hooks";
-import { type Me, signIn } from "./auth/session";
+import { type Me, signIn, signOut } from "./auth/session";
+import { AbsenceSheet } from "./booking/AbsenceSheet";
 import { DeskSheet } from "./booking/DeskSheet";
 import { RefusalSheet, type Refusal } from "./booking/RefusalSheet";
 import { TodayCard, NextInOffice } from "./booking/TodayCard";
@@ -19,20 +21,24 @@ import { WeekStrip } from "./booking/WeekStrip";
 import { dayName, displayDate, longLabel, siteToday, weekdayLabel } from "./booking/dates";
 import { DeskList } from "./floorplan/DeskList";
 import { FloorPlan, type Desk, type DeskState } from "./floorplan/FloorPlan";
+import { MeScreen } from "./people/MeScreen";
+import { PersonScreen } from "./people/PersonScreen";
+import { TeamScreen } from "./people/TeamScreen";
+import { TabBar, type Tab } from "./ui/TabBar";
 import { initials } from "./ui/bits";
 
-const AdminConsole = lazy(() => import("./admin/AdminConsole"));
-
 const DEMO_EMAIL = "priya@northwind.example";
-type Screen = "today" | "plan" | "admin";
 
 export default function App() {
   const [me, setMe] = useState<Me | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [screen, setScreen] = useState<Screen>("today");
+  const [tab, setTab] = useState<Tab>("today");
   const [mode, setMode] = useState<"plan" | "list">("plan");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [refusal, setRefusal] = useState<Refusal | null>(null);
+  const [personId, setPersonId] = useState<string | null>(null);
+  const [focusResourceId, setFocusResourceId] = useState<string | null>(null);
+  const [absenceOpen, setAbsenceOpen] = useState(false);
 
   useEffect(() => {
     signIn(DEMO_EMAIL)
@@ -61,6 +67,7 @@ export default function App() {
   const state = useFloorState(floorId, on);
   const book = useCreateBooking();
   const cancel = useCancelBooking();
+  const declare = useSetDeclaration();
 
   const week = useMemo(() => (days.data ?? []).slice(0, 7), [days.data]);
   const dayRecord = days.data?.find((d) => d.date === on);
@@ -99,6 +106,20 @@ export default function App() {
   function pickDay(iso: string) {
     setDay(iso);
     setRefusal(null);
+  }
+
+  function openPerson(userId: string) {
+    setPersonId(userId);
+  }
+
+  /** From a colleague's schedule: go to the plan for that day, centred on
+   *  their desk. The disclosure is the same one their schedule already made. */
+  function sitNear(dayIso: string, resourceId: string, _floorId: string) {
+    setDay(dayIso);
+    setFocusResourceId(resourceId);
+    setPersonId(null);
+    setMode("plan");
+    setTab("spaces");
   }
 
   function act(resourceId: string) {
@@ -149,106 +170,157 @@ export default function App() {
   }
 
   const selected = selectedId ? (byId.get(selectedId) ?? null) : null;
+  const heading =
+    personId
+      ? ""
+      : tab === "spaces"
+        ? (floor.data?.name ?? "Floor")
+        : tab === "team"
+          ? "Team"
+          : tab === "me"
+            ? "Me"
+            : displayDate(on);
 
   return (
     <main className="app safe">
       <header className="topbar">
         <div>
-          <span className="eyebrow">
-            {weekdayLabel(on).split(" ")[0]} · {site?.name}
-          </span>
-          {screen === "today" ? (
-            <h1 className="display">{displayDate(on)}</h1>
+          {personId ? (
+            <button className="link-back" onClick={() => setPersonId(null)}>
+              ‹ Back
+            </button>
           ) : (
-            <h1 className="title" style={{ marginTop: 2 }}>
-              {floor.data?.name ?? "Floor"}
-            </h1>
+            <>
+              <span className="eyebrow">
+                {weekdayLabel(on).split(" ")[0]} · {site?.name}
+              </span>
+              {tab === "today" ? (
+                <h1 className="display">{heading}</h1>
+              ) : (
+                <h1 className="title" style={{ marginTop: 2 }}>
+                  {heading}
+                </h1>
+              )}
+            </>
           )}
         </div>
-        <div className="avatar" aria-hidden="true">
-          {initials(me?.display_name ?? "")}
-        </div>
+        {!personId && (
+          <div className="avatar" aria-hidden="true">
+            {initials(me?.display_name ?? "")}
+          </div>
+        )}
       </header>
 
-      {screen === "today" && (
-        <div className="scroll">
-          <div className="pad" style={{ marginTop: 14 }}>
-            <TodayCard
-              day={dayRecord}
-              dayLabel={on === todayIso ? "Today" : longLabel(on)}
-              siteName={site?.name ?? ""}
-              onShowPlan={() => setScreen("plan")}
-              onFindDesk={() => setScreen("plan")}
-            />
-          </div>
+      {personId ? (
+        <PersonScreen
+          userId={personId}
+          todayIso={todayIso}
+          onSitNear={sitNear}
+          onBack={() => setPersonId(null)}
+        />
+      ) : (
+        <>
+          {tab === "today" && (
+            <div className="scroll">
+              <div className="pad" style={{ marginTop: 14 }}>
+                <TodayCard
+                  day={dayRecord}
+                  dayLabel={on === todayIso ? "Today" : longLabel(on)}
+                  siteName={site?.name ?? ""}
+                  onShowPlan={() => {
+                    setFocusResourceId(null);
+                    setTab("spaces");
+                  }}
+                  onFindDesk={() => {
+                    setFocusResourceId(null);
+                    setTab("spaces");
+                  }}
+                />
+              </div>
 
-          <section className="section">
-            <span className="eyebrow pad" style={{ display: "block", marginBottom: 10 }}>
-              Your week
-            </span>
-            <WeekStrip days={week} selected={on} todayIso={todayIso} onPick={pickDay} />
-          </section>
+              <section className="section">
+                <span className="eyebrow pad" style={{ display: "block", marginBottom: 10 }}>
+                  Your week
+                </span>
+                <WeekStrip days={week} selected={on} todayIso={todayIso} onPick={pickDay} />
+              </section>
 
-          <NextInOffice days={days.data ?? []} labelFor={longLabel} onPick={pickDay} />
-
-          <div className="pad section">
-            <button className="btn btn--quiet" onClick={() => setScreen("admin")}>
-              Admin console
-            </button>
-          </div>
-          <div style={{ height: 32 }} />
-        </div>
-      )}
-
-      {screen === "plan" && (
-        <div className="plan-screen">
-          <div className="plan-controls">
-            <div className="plan-controls__stack">
-              <div className="seg">
-                <button aria-pressed={mode === "plan"} onClick={() => setMode("plan")}>
-                  Plan
-                </button>
-                <button aria-pressed={mode === "list"} onClick={() => setMode("list")}>
-                  List
+              <div className="pad section">
+                <button className="btn btn--quiet" onClick={() => setAbsenceOpen(true)}>
+                  {dayRecord?.declaration
+                    ? "Change what you're doing"
+                    : "I'm not coming in"}
                 </button>
               </div>
-              <span className="pill tabular">
-                <span className="count-free">{free} free</span>
-                <span className="count-total">of {desks.length}</span>
-              </span>
-            </div>
-            <button className="pill" onClick={() => setScreen("today")}>
-              {weekdayLabel(on)}
-            </button>
-          </div>
 
-          {mode === "plan" && floor.data ? (
-            <FloorPlan
-              planWidth={floor.data.plan_width ?? 1600}
-              planHeight={floor.data.plan_height ?? 1000}
-              desks={desks}
-              states={states}
-              onSelect={setSelectedId}
-            />
-          ) : (
-            <div className="scroll pad" style={{ paddingTop: 108 }}>
-              <DeskList desks={desks} states={states} onSelect={setSelectedId} />
-              <div style={{ height: 32 }} />
+              <NextInOffice days={days.data ?? []} labelFor={longLabel} onPick={pickDay} />
+              <div style={{ height: 24 }} />
             </div>
           )}
-        </div>
+
+          {tab === "spaces" && (
+            <div className="plan-screen">
+              <div className="plan-controls">
+                <div className="plan-controls__stack">
+                  <div className="seg">
+                    <button aria-pressed={mode === "plan"} onClick={() => setMode("plan")}>
+                      Plan
+                    </button>
+                    <button aria-pressed={mode === "list"} onClick={() => setMode("list")}>
+                      List
+                    </button>
+                  </div>
+                  <span className="pill tabular">
+                    <span className="count-free">{free} free</span>
+                    <span className="count-total">of {desks.length}</span>
+                  </span>
+                </div>
+                <button className="pill" onClick={() => setTab("today")}>
+                  {weekdayLabel(on)}
+                </button>
+              </div>
+
+              {mode === "plan" && floor.data ? (
+                <FloorPlan
+                  planWidth={floor.data.plan_width ?? 1600}
+                  planHeight={floor.data.plan_height ?? 1000}
+                  desks={desks}
+                  states={states}
+                  onSelect={setSelectedId}
+                  focusResourceId={focusResourceId}
+                />
+              ) : (
+                <div className="scroll pad" style={{ paddingTop: 108 }}>
+                  <DeskList desks={desks} states={states} onSelect={setSelectedId} />
+                  <div style={{ height: 32 }} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === "team" && (
+            <TeamScreen
+              days={week}
+              selected={on}
+              todayIso={todayIso}
+              onPickDay={pickDay}
+              onOpenPerson={openPerson}
+            />
+          )}
+
+          {tab === "me" && (
+            <MeScreen
+              onSignOut={() => {
+                signOut();
+                setMe(null);
+                setAuthError("Signed out. Reload to sign in again.");
+              }}
+            />
+          )}
+        </>
       )}
 
-      {screen === "admin" && (
-        <div className="scroll pad">
-          <Suspense fallback={<p className="meta">Loading console…</p>}>
-            <AdminConsole />
-          </Suspense>
-          <button className="btn btn--quiet" style={{ marginTop: 16 }} onClick={() => setScreen("today")}>
-            Back
-          </button>
-        </div>
-      )}
+      {!personId && <TabBar active={tab} onChange={setTab} />}
 
       {selected && (
         <DeskSheet
@@ -259,6 +331,21 @@ export default function App() {
           onBook={() => act(selected.id)}
           onCancel={() => act(selected.id)}
           onClose={() => setSelectedId(null)}
+        />
+      )}
+
+      {absenceOpen && (
+        <AbsenceSheet
+          dayLabel={on === todayIso ? "Today" : longLabel(on)}
+          current={dayRecord?.declaration ?? null}
+          busy={declare.isPending}
+          onChoose={(kind) =>
+            declare.mutate({ on, kind }, { onSuccess: () => setAbsenceOpen(false) })
+          }
+          onClear={() =>
+            declare.mutate({ on, kind: null }, { onSuccess: () => setAbsenceOpen(false) })
+          }
+          onClose={() => setAbsenceOpen(false)}
         />
       )}
 

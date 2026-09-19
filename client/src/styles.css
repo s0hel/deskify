@@ -355,3 +355,125 @@ button { font: inherit; color: inherit; cursor: pointer; }
    preview behind it shows through (TDD §10.2). */
 body.scanner-active,
 body.scanner-active #root { background: transparent !important; }
+
+/* ---- tab bar ------------------------------------------------------------ */
+
+.tabbar {
+  display: flex;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  padding-bottom: env(safe-area-inset-bottom);
+  flex: none;
+}
+.tabbar__tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  padding: 9px 0 7px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.tabbar__tab--on { color: var(--accent); }
+
+/* ---- people ------------------------------------------------------------- */
+
+.search {
+  width: 100%;
+  font: inherit;
+  font-size: 16px;
+  padding: 13px 16px;
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  color: var(--ink);
+}
+.search::placeholder { color: var(--muted); }
+.search:focus { border-color: var(--accent); outline: none; }
+
+.person { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.person__name { font-weight: 600; }
+.muted-inline { color: var(--muted); font-weight: 400; }
+
+.person-head { display: flex; align-items: center; gap: 14px; margin-top: 8px; }
+
+.day-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: var(--r-md);
+}
+.row-card .day-row__date, .day-row__date { width: 48px; flex: none; text-align: center; }
+.day-row__num { font-size: 20px; font-weight: 700; }
+.day-row__body { flex: 1; min-width: 0; }
+
+.sit-near {
+  flex: none;
+  border: none;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--r-pill);
+  padding: 8px 14px;
+}
+
+/* ---- choice lists (visibility, absence) --------------------------------- */
+
+.choice {
+  position: relative;
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 14px 44px 14px 16px;
+}
+.choice--on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+.choice__label { display: block; font-weight: 600; font-size: 17px; }
+.choice--on .choice__label { color: var(--accent); }
+.choice__detail { display: block; color: var(--muted); font-size: 14px; margin-top: 3px; }
+.choice__tick {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  color: var(--accent);
+  font-weight: 700;
+}
+.choice:disabled { opacity: 0.6; }
+
+/* ---- key/value card ----------------------------------------------------- */
+
+.kv { padding: 4px 16px; }
+.kv__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 0;
+}
+.kv__row + .kv__row { border-top: 1px solid var(--line); }
+.kv__value { font-weight: 600; }
+
+.btn--danger-text { color: var(--danger); }
+
+/* A colleague's desk, arrived at via "Sit near". Clay rather than accent, so
+   it reads as "theirs", not "yours". */
+.desk-ring--focus { stroke: var(--clay); opacity: 0.85; }
+
+.link-back {
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 17px;
+  font-weight: 600;
+  padding: 4px 0;
+}
