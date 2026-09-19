@@ -6,8 +6,8 @@ __pycache__/
 node_modules/
 dist/
 .DS_Store
-client/ios/
-client/android/
+#client/ios/
+#client/android/
 .pytest_cache/
 .ruff_cache/
 

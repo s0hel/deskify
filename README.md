@@ -42,7 +42,8 @@ run, so `make test` never empties the tenant a running app is showing you.
 | Generated TypeScript client | Done — `client/src/api/schema.d.ts` |
 | OIDC end to end for one IdP | **Blocked on IdP credentials** (T6) |
 | 300-desk floor-plan spike on device | **Harness ready, gate not yet run on hardware** |
-| Barcode scanning behind a transparent webview | **Not run — needs a device build** |
+| iOS platform, native arm64 simulator build | Done — `client/ios` |
+| Barcode scanning | Plugin settled (PRD §8.1.2 cond. 2); **scan not run — needs a camera** |
 | OTA decision | **Open** (T1) |
 
 The three unfinished rows are the ones that need a Mac with Xcode, an Android
@@ -176,6 +177,51 @@ cd api && uv run pytest tests/test_concurrency.py -q
   the tenant boundary. Deleting the filter makes six of them fail.
 - **`test_team_week.py`** — the grid's privacy inheritance (no row *and* no count for a
   hidden teammate) and the forward-only boundary.
+
+---
+
+## iOS
+
+```bash
+make ios                                              # local API
+make ios IOS_API_URL=https://deskify-api-pi.vercel.app # deployed API
+```
+
+`client/ios/` is **committed**, deliberately. It is where `Info.plist` lives, and that file
+carries `NSCameraUsageDescription` and `NSLocationWhenInUseUsageDescription` — without them
+iOS kills the app instead of showing a permission prompt. Treating the directory as a build
+artifact means regenerating it silently deletes those strings.
+
+**The API address is compiled into the bundle.** There is no `server.url` in
+`capacitor.config.ts` (see the comment there) and no runtime config, so `VITE_API_URL` must be
+set at build time; a production build with none throws at startup rather than quietly calling
+the phone itself. Cleartext `http://localhost` is fine on a **simulator** — it shares the host
+network and iOS exempts loopback from App Transport Security — but a real device has neither,
+so builds for hardware need an `https://` URL.
+
+### QR scanning uses `@capacitor/barcode-scanner`, not ML Kit
+
+The original pick, `@capacitor-mlkit/barcode-scanning`, was dropped in Phase 0 (PRD §8.1.2
+condition 2). It drew the camera preview *behind* the webview, so the app had to turn its own
+background transparent and restore it on every exit path including the throwing one — a P0 flow
+one missed `finally` away from an invisible app.
+
+The deciding constraint was architectural: GoogleMLKit ships fat `.framework` binaries whose
+arm64 slice is the **device** slice, so its podspec sets
+`EXCLUDED_ARCHS[sdk=iphonesimulator*] = arm64`. Every release through 9.0.0 does this, so there
+is no version to upgrade to, and on Apple Silicon it means no native simulator build of this app.
+`OSBarcodeLib`, under the replacement, ships an xcframework with an `ios-arm64_x86_64-simulator`
+slice.
+
+Before adding any native dependency, check that one line:
+
+```bash
+pod spec cat <PodName> --version=<v> | grep EXCLUDED_ARCHS
+```
+
+**The scan itself is still unverified** — a simulator has no camera, and nothing calls `scan()`
+yet (FR-4.1 is unbuilt). What is verified is that the app builds native arm64, launches, and
+loads live data.
 
 ---
 

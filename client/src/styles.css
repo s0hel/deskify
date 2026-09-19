@@ -351,11 +351,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .sheet, .scrim { animation: none; }
 }
 
-/* The scanning screen makes the webview transparent so the native camera
-   preview behind it shows through (TDD §10.2). */
-body.scanner-active,
-body.scanner-active #root { background: transparent !important; }
-
 /* ---- tab bar ------------------------------------------------------------ */
 
 .tabbar {

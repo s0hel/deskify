@@ -35,19 +35,3 @@ export interface SecureStore {
 }
 
 export const isNative = (): boolean => Capacitor.isNativePlatform();
-
-/**
- * The scanning screen makes the webview transparent so the native camera
- * preview behind it is visible, and draws its own reticle in HTML.
- *
- * The restore MUST run on the error path too. A webview left transparent is an
- * app that looks broken (PRD §8.1.2 condition 2).
- */
-export async function withTransparentWebview<T>(fn: () => Promise<T>): Promise<T> {
-  document.body.classList.add("scanner-active");
-  try {
-    return await fn();
-  } finally {
-    document.body.classList.remove("scanner-active");
-  }
-}

@@ -333,7 +333,7 @@ confirmed during Phase 0 — this ecosystem moves.
 
 | Requirement | Plugin / approach |
 |---|---|
-| FR-4.1 QR check-in | `@capacitor-mlkit/barcode-scanning` |
+| FR-4.1 QR check-in | `@capacitor/barcode-scanner` (native scanner screen; **not** `@capacitor-mlkit/barcode-scanning` — see §8.1.2 condition 2) |
 | FR-7.1 Push | `@capacitor/push-notifications` + APNs / FCM |
 | FR-4.2 Geofence check-in | `@capacitor/geolocation`, foreground one-shot read |
 | FR-1.4 Token storage | A Keychain/Keystore-backed secure-storage plugin — **not** `@capacitor/preferences`, which is plaintext |
@@ -361,10 +361,22 @@ Two clarifications this stack forces, both of which simplify the product:
    changes are CSS class swaps, not re-renders. Built naively — React state on every pointer move —
    it will not hold 60fps on mid-tier Android. Spike this in Phase 0 on real low-end hardware with
    300 nodes.
-2. **Spike barcode scanning in Phase 0.** The MLKit plugin renders the native camera preview *behind*
-   the webview, so the webview background must be made transparent and the scanning UI drawn in HTML
-   over it. It is a documented pattern, but it is the one place the webview abstraction leaks.
-   Budget a day, not an afternoon.
+2. **Barcode scanning: settled in Phase 0 by changing the plugin.** The original pick,
+   `@capacitor-mlkit/barcode-scanning`, renders the native camera preview *behind* the webview, so
+   the app had to turn its own background transparent and draw the scanning UI in HTML over it —
+   restoring it on every exit path, including the throwing one. That is the one place the webview
+   abstraction leaks, and it leaked into a P0 flow.
+
+   `@capacitor/barcode-scanner` presents a native scanner screen that owns the display and returns
+   the payload, so the transparency hack is gone rather than handled. It also drops GoogleMLKit, a
+   general on-device ML runtime carrying 13 symbologies, for a product that decided in Q4 on **QR
+   only**. The deciding constraint was architectural: GoogleMLKit ships fat `.framework` binaries
+   whose arm64 slice is the *device* slice, so its podspec excludes arm64 for the simulator — in
+   every release through 9.0.0. On Apple Silicon that means no native simulator build of this app,
+   ever. The replacement's `OSBarcodeLib` ships an xcframework with an `ios-arm64_x86_64-simulator`
+   slice.
+
+   Still unverified on hardware: the scan itself. A simulator has no camera.
 3. **Keep the bundle local.** Never point the webview at a remote URL to get faster updates. It
    breaks FR-10.1 and invites rejection under App Store guideline 4.2 (minimum functionality). This
    product's use of camera, push, biometrics, location, deep links and offline storage makes it
@@ -526,7 +538,7 @@ schema including the exclusion constraint; OIDC sign-in end to end for one IdP; 
 observability wired.
 
 Two spikes run in parallel and gate the stack (§8.1.2): the 300-desk floor-plan pan/zoom on real
-low-end Android hardware, and MLKit barcode scanning behind a transparent webview. The OTA decision
+low-end Android hardware, and barcode scanning on a real device. The OTA decision
 (§8.1.2, condition 4) closes in this phase.
 **Exit:** a developer can sign in on a real phone and read a seeded site from the real API, and both
 spikes have passed — or the stack decision has been deliberately re-opened.

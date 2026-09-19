@@ -918,7 +918,7 @@ one-file change.
 
 ```ts
 export interface Scanner { scan(): Promise<string>; }
-// native/scanner.capacitor.ts → @capacitor-mlkit/barcode-scanning
+// native/scanner.capacitor.ts → @capacitor/barcode-scanner  (PRD §8.1.2 cond. 2)
 // native/scanner.web.ts       → BarcodeDetector, or unsupported()
 ```
 
