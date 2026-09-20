@@ -4,6 +4,7 @@ import { useMe, useSetVisibility, type Visibility } from "../api/hooks";
 import { Sheet } from "../ui/Sheet";
 import { Chevron } from "../ui/bits";
 import { Avatar } from "./Avatar";
+import { HomeSiteSheet } from "./HomeSiteSheet";
 
 /**
  * FR-5.6, presented as the reference does: the setting is described by what it
@@ -36,6 +37,7 @@ export function MeScreen({ onSignOut }: { onSignOut: () => void }) {
   const me = useMe(true);
   const setVisibility = useSetVisibility();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [officeOpen, setOfficeOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
 
   if (!me.data) {
@@ -57,6 +59,21 @@ export function MeScreen({ onSignOut }: { onSignOut: () => void }) {
           <p className="meta">{me.data.email}</p>
         </div>
       </div>
+
+      <section className="section pad">
+        <span className="eyebrow">Office</span>
+        <button className="row-card" onClick={() => setOfficeOpen(true)}>
+          <span>
+            <span className="person__name">Your usual office</span>
+            <br />
+            <span className="meta">
+              {me.data.home_site?.name ?? "Not set"}
+              {me.data.home_site && me.data.home_site_id === null && " · not chosen yet"}
+            </span>
+          </span>
+          <Chevron />
+        </button>
+      </section>
 
       <section className="section pad">
         <span className="eyebrow">Presence</span>
@@ -108,6 +125,13 @@ export function MeScreen({ onSignOut }: { onSignOut: () => void }) {
         </button>
       </div>
       <div style={{ height: 24 }} />
+
+      {officeOpen && (
+        <HomeSiteSheet
+          currentSiteId={me.data.home_site?.id ?? null}
+          onClose={() => setOfficeOpen(false)}
+        />
+      )}
 
       {sheetOpen && (
         <Sheet open onClose={() => setSheetOpen(false)} labelledBy="visibility-title">

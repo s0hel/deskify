@@ -8,8 +8,8 @@ import {
   useFloor,
   useFloorState,
   useFloors,
+  useMe,
   useSetDeclaration,
-  useSites,
   type ApiResource,
 } from "./api/hooks";
 import { type Me, signIn, signOut } from "./auth/session";
@@ -18,9 +18,11 @@ import { DeskSheet } from "./booking/DeskSheet";
 import { RefusalSheet, type Refusal } from "./booking/RefusalSheet";
 import { TodayCard, NextInOffice } from "./booking/TodayCard";
 import { WeekStrip } from "./booking/WeekStrip";
-import { dayName, displayDate, longLabel, siteToday, weekdayLabel } from "./booking/dates";
+import { WelcomeHero } from "./booking/WelcomeHero";
+import { dayName, longLabel, siteToday, weekdayLabel } from "./booking/dates";
 import { DeskList } from "./floorplan/DeskList";
 import { FloorPlan, type Desk, type DeskState } from "./floorplan/FloorPlan";
+import { HomeSiteSheet } from "./people/HomeSiteSheet";
 import { MeScreen } from "./people/MeScreen";
 import { PersonScreen } from "./people/PersonScreen";
 import { TeamScreen } from "./people/TeamScreen";
@@ -65,6 +67,7 @@ export default function App() {
   const [personId, setPersonId] = useState<string | null>(null);
   const [focusResourceId, setFocusResourceId] = useState<string | null>(null);
   const [absenceOpen, setAbsenceOpen] = useState(false);
+  const [officeOpen, setOfficeOpen] = useState(false);
 
   useEffect(() => {
     signIn(DEMO_EMAIL)
@@ -73,8 +76,11 @@ export default function App() {
   }, []);
 
   const signedIn = me !== null;
-  const sites = useSites(signedIn);
-  const site = sites.data?.[0];
+  // Which office we are showing is a PROFILE fact, not "whichever site came
+  // back first" (FR-1.9, FR-2.1). The API resolves it -- including the
+  // fallback for someone who has never chosen -- so there is one answer.
+  const profile = useMe(signedIn);
+  const site = profile.data?.home_site ?? undefined;
   const days = useDays(site?.id);
   const floors = useFloors(site?.id);
   const floorId = floors.data?.[0]?.id;
@@ -179,7 +185,7 @@ export default function App() {
     );
   }
 
-  if (!signedIn || sites.isLoading || days.isLoading) {
+  if (!signedIn || profile.isLoading || days.isLoading) {
     return (
       <main className="app safe">
         <div className="pad" style={{ paddingTop: 40 }}>
@@ -190,16 +196,10 @@ export default function App() {
   }
 
   const selected = selectedId ? (byId.get(selectedId) ?? null) : null;
+  // The today tab has no topbar heading -- the hero is its header -- so there
+  // is no case for it here.
   const heading =
-    personId
-      ? ""
-      : tab === "spaces"
-        ? (floor.data?.name ?? "Floor")
-        : tab === "team"
-          ? "Team"
-          : tab === "me"
-            ? "Me"
-            : displayDate(on);
+    tab === "spaces" ? (floor.data?.name ?? "Floor") : tab === "team" ? "Team" : "Me";
 
   return (
     <main className="app safe">
@@ -210,18 +210,18 @@ export default function App() {
               ‹ Back
             </button>
           ) : (
-            <>
-              <span className="eyebrow">
-                {weekdayLabel(on).split(" ")[0]} · {site?.name}
-              </span>
-              {tab === "today" ? (
-                <h1 className="display">{heading}</h1>
-              ) : (
+            // On the today tab the hero below IS the header -- it names the
+            // office and the date -- so repeating either here is noise.
+            tab !== "today" && (
+              <>
+                <span className="eyebrow">
+                  {weekdayLabel(on).split(" ")[0]} · {site?.name}
+                </span>
                 <h1 className="title" style={{ marginTop: 2 }}>
                   {heading}
                 </h1>
-              )}
-            </>
+              </>
+            )
           )}
         </div>
         {!personId && (
@@ -242,6 +242,19 @@ export default function App() {
         <>
           {tab === "today" && (
             <div className="scroll">
+              {site && (
+                <div className="pad" style={{ marginTop: 6 }}>
+                  <WelcomeHero
+                    siteId={site.id}
+                    siteName={site.name}
+                    name={profile.data?.display_name ?? me?.display_name ?? ""}
+                    todayLabel={longLabel(todayIso)}
+                    chosen={profile.data?.home_site_id !== null}
+                    onChangeSite={() => setOfficeOpen(true)}
+                  />
+                </div>
+              )}
+
               <div className="pad" style={{ marginTop: 14 }}>
                 <TodayCard
                   day={dayRecord}
@@ -251,12 +264,25 @@ export default function App() {
                     setFocusResourceId(null);
                     setTab("spaces");
                   }}
-                  onFindDesk={() => {
-                    setFocusResourceId(null);
-                    setTab("spaces");
-                  }}
                 />
               </div>
+
+              {/* One primary action, always in the same place. It is hidden
+                  only when there is genuinely nothing to book that day --
+                  the week strip below is the way forward from there. */}
+              {dayRecord && dayRecord.free > 0 && (
+                <div className="pad" style={{ marginTop: 14 }}>
+                  <button
+                    className="btn btn--primary"
+                    onClick={() => {
+                      setFocusResourceId(null);
+                      setTab("spaces");
+                    }}
+                  >
+                    Book a space
+                  </button>
+                </div>
+              )}
 
               <section className="section">
                 <span className="eyebrow pad" style={{ display: "block", marginBottom: 10 }}>
@@ -366,6 +392,13 @@ export default function App() {
             declare.mutate({ on, kind: null }, { onSuccess: () => setAbsenceOpen(false) })
           }
           onClose={() => setAbsenceOpen(false)}
+        />
+      )}
+
+      {officeOpen && (
+        <HomeSiteSheet
+          currentSiteId={profile.data?.home_site?.id ?? null}
+          onClose={() => setOfficeOpen(false)}
         />
       )}
 

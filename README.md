@@ -10,15 +10,16 @@ Flex workspace booking. See [docs/PRD.md](docs/PRD.md) and
 ## Quick start
 
 ```bash
-make seed     # Postgres + migrations + a 300-desk demo tenant
+make seed     # Postgres + migrations + a demo tenant: 3 offices, 300 desks in Tampa
 make api      # API  -> http://localhost:8099  (/docs for OpenAPI)
 make web      # app  -> http://localhost:5173
 make test     # the full suite, both halves
 ```
 
-The app signs in as `priya@northwind.example` automatically in dev, loads the seeded
-Berlin site, and books against the real API. Tapping a free desk books it; tapping your
-own booking cancels it. Both the plan and the list do this.
+The app signs in as `priya@northwind.example` automatically in dev, opens on **her
+default office** — Tampa, of the three the seed creates — and books against the real
+API. Tapping a free desk books it; tapping your own booking cancels it. Both the plan
+and the list do this.
 
 Tests run against a **separate** `deskify_test` database, created and migrated on first
 run, so `make test` never empties the tenant a running app is showing you.
@@ -38,6 +39,7 @@ run, so `make test` never empties the tenant a running app is showing you.
 | Client wired to the API: sign-in, real floors, booking, cancel | Done |
 | Designed UI: tokens, Today hero, week strip, circle plan, bottom sheets | Done |
 | Team, colleague and profile screens; presence privacy (FR-5.1/5.2/5.5/5.6) | Done |
+| Default office per user, and a home screen built on it (FR-1.9 home site, FR-2.1) | Done |
 | Team week grid with anchor days (FR-5.4) | Done |
 | Generated TypeScript client | Done — `client/src/api/schema.d.ts` |
 | OIDC end to end for one IdP | **Blocked on IdP credentials** (T6) |
@@ -119,17 +121,48 @@ Tokens live at the top of `client/src/styles.css` — ground, surface, ink, mute
 accent, clay, and a state colour per resource state. Light is the designed theme; dark
 holds the same hues and inverts only the surfaces.
 
-Two patterns are worth knowing before changing anything:
+Three patterns are worth knowing before changing anything:
 
 - **The plan opens covered, not letterboxed.** `coverViewBox` gives the viewBox the
   *container's* aspect ratio, so the plan fills a tall phone screen and is panned, rather
   than sitting in a strip with dead space beneath it. Label visibility is judged by
   rendered pixel size, not a fraction of the plan.
+- **The home screen names the building.** `WelcomeHero` says which office you are
+  looking at, because everything under it is scoped to one, and a screen that stays
+  silent about that is quietly wrong the week you are somewhere else. Its illustration
+  is inline SVG in the token palette, and its lit windows are a hash of the site id —
+  so two offices look different and one office always looks the same.
 - **A refusal offers a way forward.** `RefusalSheet` names the problem in plain language,
   then lists the nearest days that actually have space and lets you jump to one. FR-6.9
   asks the app to say which rule refused a booking; a refusal that only explains is still
   a dead end. The machine code sits in small type at the bottom, addressed to support
   rather than to the person reading it.
+
+## Your default office
+
+A user has a **home site** (`app_user.home_site_id`), and everything the home screen
+shows — the welcome, the availability, the week strip, the floor plan — is scoped to
+it. `PUT /me/home-site` sets it; the app reaches that from two places, the hero on the
+home screen and the Me screen, through one `HomeSiteSheet` so the two cannot drift.
+
+Two decisions worth knowing:
+
+- **`GET /me` resolves which office to open on, the client does not.** It returns
+  `home_site_id` — NULL until the user chooses, per FR-1.9 onboarding — *and*
+  `home_site`, the site to actually show: the chosen one, or the org's first by name.
+  The client used to take `sites[0]`, which meant the API and the app each had an
+  opinion about which office you were looking at. The fallback is sorted by name so it
+  is the same office on every request, and a `home_site_id` pointing at a site that has
+  since gone falls back rather than opening the app on nothing.
+- **A home site is a default, not a fence.** You can book at any site in your org, and
+  the seed shows it: Ren is homed at London Bridge and has desks in Tampa this week.
+  The hero's line changes from "Change your office" to "Is this your usual office?"
+  when the office on screen is the fallback rather than the user's answer.
+
+`PUT /me/home-site` takes the site id in the **body**, so the schema-driven
+cross-tenant harness — which substitutes victim ids into *paths* — cannot reach it.
+That case is asserted by hand in `tests/test_home_site.py`, and the path is listed in
+the harness's `NO_OBJECT_ID` with that reason.
 
 ## Presence privacy
 
@@ -175,6 +208,8 @@ cd api && uv run pytest tests/test_concurrency.py -q
   with the default signing key.
 - **`test_presence_privacy.py`** — all three visibility settings, the org kill switch, and
   the tenant boundary. Deleting the filter makes six of them fail.
+- **`test_home_site.py`** — the fallback, the choice, the stale pointer, and the
+  body-parameter cross-tenant case the path-driven harness cannot see.
 - **`test_team_week.py`** — the grid's privacy inheritance (no row *and* no count for a
   hidden teammate) and the forward-only boundary.
 

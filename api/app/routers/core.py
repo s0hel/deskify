@@ -78,10 +78,18 @@ class MeOut(BaseModel):
     locale: str
     presence_visibility: str
     teams: list[str]
+    #: The office the user picked as their usual one (FR-1.9). NULL until they
+    #: pick, which is how the client knows `home_site` below is a guess rather
+    #: than their answer.
+    home_site_id: uuid.UUID | None
+    #: The site the app opens on: the chosen one, or the org's first by name
+    #: when there is no choice yet. Resolved HERE, not in the client, so
+    #: "which office am I looking at?" has exactly one answer (FR-2.1).
+    #: NULL only for an org with no sites at all.
+    home_site: SiteOut | None
 
 
-@router.get("/me", response_model=MeOut)
-async def me(principal: Me, repo: Repo) -> MeOut:
+async def _me_out(repo: TenantRepository, principal: Principal) -> MeOut:
     user = await repo.get(AppUser, principal.user_id)
     if user is None:
         raise NotFound("user")
@@ -89,6 +97,13 @@ async def me(principal: Me, repo: Repo) -> MeOut:
     memberships = await repo.list(GroupMember, GroupMember.user_id == user.id)
     mine = {m.group_id for m in memberships}
     teams = sorted(g.name for g in await repo.list(UserGroup) if g.id in mine)
+
+    # A home_site_id left over from a deleted site resolves to None and falls
+    # back, rather than opening the app on nothing.
+    chosen = await repo.get(Site, user.home_site_id) if user.home_site_id else None
+    if chosen is None:
+        sites = sorted(await repo.list(Site), key=lambda s: s.name)
+        chosen = sites[0] if sites else None
 
     return MeOut(
         user_id=user.id,
@@ -98,7 +113,41 @@ async def me(principal: Me, repo: Repo) -> MeOut:
         locale=user.locale,
         presence_visibility=user.presence_visibility,
         teams=teams,
+        home_site_id=user.home_site_id,
+        home_site=SiteOut.model_validate(chosen) if chosen else None,
     )
+
+
+@router.get("/me", response_model=MeOut)
+async def me(principal: Me, repo: Repo) -> MeOut:
+    return await _me_out(repo, principal)
+
+
+class HomeSiteIn(BaseModel):
+    site_id: uuid.UUID
+
+
+@router.put("/me/home-site", response_model=MeOut)
+async def set_home_site(body: HomeSiteIn, principal: Me, repo: Repo, db: Db) -> MeOut:
+    """FR-1.9 -- choose the office you usually work from.
+
+    Another tenant's site id is 404, not 403 (TDD §15.1). A 403 would confirm
+    that the id names a real site somewhere, which is the disclosure the whole
+    tenancy layer exists to prevent. The path-driven cross-tenant harness
+    cannot reach this one -- the id is in the body -- so it is covered
+    explicitly in tests/test_home_site.py.
+    """
+    user = await repo.get(AppUser, principal.user_id)
+    if user is None:
+        raise NotFound("user")
+
+    site = await repo.get(Site, body.site_id)
+    if site is None:
+        raise NotFound("site")
+
+    user.home_site_id = site.id
+    await db.commit()
+    return await _me_out(repo, principal)
 
 
 @router.get("/sites", response_model=list[SiteOut])

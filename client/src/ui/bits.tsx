@@ -18,3 +18,15 @@ export function Chevron() {
     </svg>
   );
 }
+
+/**
+ * What to call someone in a greeting.
+ *
+ * "Welcome to Tampa, Priya Raman" reads like a boarding announcement, so the
+ * hero uses the first word only -- and falls back to the whole string rather
+ * than to nothing when there is no space in it.
+ */
+export function firstName(name: string): string {
+  const [first] = name.trim().split(/\s+/).filter(Boolean);
+  return first ?? "";
+}

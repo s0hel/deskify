@@ -61,6 +61,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/home-site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Home Site
+         * @description FR-1.9 -- choose the office you usually work from.
+         *
+         *     Another tenant's site id is 404, not 403 (TDD §15.1). A 403 would confirm
+         *     that the id names a real site somewhere, which is the disclosure the whole
+         *     tenancy layer exists to prevent. The path-driven cross-tenant harness
+         *     cannot reach this one -- the id is in the body -- so it is covered
+         *     explicitly in tests/test_home_site.py.
+         */
+        put: operations["set_home_site_me_home_site_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sites": {
         parameters: {
             query?: never;
@@ -569,6 +595,14 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** HomeSiteIn */
+        HomeSiteIn: {
+            /**
+             * Site Id
+             * Format: uuid
+             */
+            site_id: string;
+        };
         /** MeOut */
         MeOut: {
             /**
@@ -591,6 +625,9 @@ export interface components {
             presence_visibility: string;
             /** Teams */
             teams: string[];
+            /** Home Site Id */
+            home_site_id: string | null;
+            home_site: components["schemas"]["SiteOut"] | null;
         };
         /** PersonDetailOut */
         PersonDetailOut: {
@@ -859,6 +896,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_home_site_me_home_site_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HomeSiteIn"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

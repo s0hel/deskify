@@ -7,19 +7,22 @@ import { Chevron } from "../ui/bits";
  * Booked and not-booked are different cards rather than one card with a
  * conditional line, because the answer changes what the card is *for* -- find
  * your desk, or get one.
+ *
+ * The card does NOT carry "Book a space". That button belongs to the screen
+ * and is always in the same place, so the thing you came to do does not move
+ * depending on whether you happen to have a desk already. What the card keeps
+ * is the action only it can offer: showing you where your desk is.
  */
 export function TodayCard({
   day,
   dayLabel,
   siteName,
   onShowPlan,
-  onFindDesk,
 }: {
   day: DayAvailability | undefined;
   dayLabel: string;
   siteName: string;
   onShowPlan: () => void;
-  onFindDesk: () => void;
 }) {
   if (!day) return null;
 
@@ -33,7 +36,7 @@ export function TodayCard({
         <p className="meta" style={{ marginTop: 6 }}>
           {siteName} · All day
         </p>
-        <button className="btn btn--primary" style={{ marginTop: 16 }} onClick={onShowPlan}>
+        <button className="btn btn--quiet" style={{ marginTop: 16 }} onClick={onShowPlan}>
           Show on the plan
         </button>
       </section>
@@ -57,11 +60,6 @@ export function TodayCard({
           </>
         )}
       </p>
-      {!full && (
-        <button className="btn btn--primary" style={{ marginTop: 16 }} onClick={onFindDesk}>
-          Find a desk
-        </button>
-      )}
     </section>
   );
 }

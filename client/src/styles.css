@@ -610,3 +610,50 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* The plan's segmented control floats; this one sits in the flow. */
 .seg--flush { box-shadow: none; border: 1px solid var(--line); width: 100%; }
 .seg--flush button { flex: 1; }
+
+/* ---- welcome hero ------------------------------------------------------- */
+
+/* The illustration is the card's top edge, so it is clipped by the card's own
+   radius rather than being an image sitting inside padding. */
+.hero {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.hero__art {
+  display: block;
+  width: 100%;
+  /* Tall enough to read as a place, short enough that the greeting and the
+     booking card below it are both above the fold on a small phone. */
+  height: 132px;
+}
+
+.hero__body { padding: 16px 18px 18px; }
+/* balance, so a two-line greeting breaks between the phrases rather than
+   leaving one name stranded on its own line. */
+.hero__greeting { font-size: 28px; line-height: 1.15; text-wrap: balance; }
+.hero__date { margin: 6px 0 0; }
+
+.hero__switch {
+  margin-top: 12px;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Three flat tones for depth. Derived from the surface so the building sits
+   on the card in both themes instead of being a light rectangle in the dark. */
+.hero__sky { fill: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+.hero__sun { fill: color-mix(in srgb, var(--clay) 30%, var(--surface)); }
+.hero__far { fill: color-mix(in srgb, var(--accent) 22%, var(--surface)); }
+.hero__mid { fill: color-mix(in srgb, var(--accent) 38%, var(--surface)); }
+.hero__near { fill: color-mix(in srgb, var(--accent) 62%, var(--surface)); }
+.hero__door { fill: color-mix(in srgb, var(--ink) 38%, var(--surface)); }
+
+.hero__win { fill: color-mix(in srgb, var(--ink) 28%, transparent); }
+.hero__win--lit { fill: color-mix(in srgb, var(--clay) 72%, var(--surface)); }

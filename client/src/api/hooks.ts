@@ -138,6 +138,14 @@ export interface Me {
   locale: string;
   presence_visibility: Visibility;
   teams: string[];
+  /** The office they chose (FR-1.9). Null until they have chosen one. */
+  home_site_id: string | null;
+  /**
+   * The site the app opens on. The API resolves this -- the chosen office, or
+   * the org's first by name when there is none yet -- so the client never has
+   * a second opinion about which office it is showing.
+   */
+  home_site: Site | null;
 }
 
 export interface Booking {
@@ -329,6 +337,31 @@ export function useSetVisibility() {
       // Your own change alters what everyone else sees, so drop those too.
       qc.invalidateQueries({ queryKey: ["people"] });
       qc.invalidateQueries({ queryKey: ["person"] });
+    },
+  });
+}
+
+/**
+ * FR-1.9 -- set the office you usually work from.
+ *
+ * Everything on the home screen hangs off the site, so the whole site-scoped
+ * half of the cache goes: days, floors, availability. The response is a full
+ * `Me`, so the profile itself is written straight in rather than refetched --
+ * the greeting must not flicker through the old office on the way.
+ */
+export function useSetHomeSite() {
+  const qc = useQueryClient();
+  return useMutation<Me, ApiError, string>({
+    mutationFn: (siteId) =>
+      api<Me>("/me/home-site", {
+        method: "PUT",
+        body: JSON.stringify({ site_id: siteId }),
+      }),
+    onSuccess: (me) => {
+      qc.setQueryData(keys.me, me);
+      qc.invalidateQueries({ queryKey: ["days"] });
+      qc.invalidateQueries({ queryKey: ["floors"] });
+      qc.invalidateQueries({ queryKey: ["floorState"] });
     },
   });
 }

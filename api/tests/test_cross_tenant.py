@@ -24,6 +24,10 @@ NO_OBJECT_ID = {
     "/auth/token",      # pre-authentication
     "/me",              # scoped to the caller by construction
     "/me/privacy",      # ditto
+    # Takes a site id, but in the BODY, so this path-driven harness cannot
+    # reach it. Covered explicitly by test_home_site.py::
+    # test_another_tenants_site_cannot_become_your_home.
+    "/me/home-site",
     "/sites",           # collection: tenancy asserted separately below
     "/bookings",        # collection: ditto
     "/bookings/validate",

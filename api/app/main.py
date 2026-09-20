@@ -20,7 +20,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    # PUT belongs here: /me/privacy, /me/home-site and /me/declarations/{on}
+    # are all PUT, and a missing method fails at the preflight, so the browser
+    # reports a CORS error rather than anything about the endpoint.
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["authorization", "content-type", "idempotency-key"],
 )
 
