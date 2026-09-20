@@ -27,11 +27,5 @@ client/tsconfig.tsbuildinfo
 # written by `vercel build`; the version comes from pyproject.toml
 api/.python-version
 
-# The office photographs in client/src/assets/offices/ ARE committed -- Vercel
-# builds from git, so a photo that is not in the repository does not exist on
-# the deployed site. The directory one level up is a staging area for images
-# not yet assigned to an office, and stays out.
-client/src/assets/*.jpg
-
 # Per-developer permission grants, not a project setting.
 .claude/settings.local.json
