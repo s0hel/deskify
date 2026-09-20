@@ -14,12 +14,15 @@ hard case rather than on a toy.
 """
 
 import asyncio
+import sys
 from datetime import datetime, timedelta
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import Range
 
+from app.config import settings
 from app.db import SessionLocal
 from app.floorplans import OFFICES
 from app.models import (
@@ -104,6 +107,52 @@ DECLARATIONS = [
 ]
 
 
+def _target() -> str:
+    """The database host this run would empty, with the credentials removed."""
+    parts = urlsplit(settings.database_url)
+    return f"{parts.hostname or '?'}{f':{parts.port}' if parts.port else ''}{parts.path}"
+
+
+def _is_local(host: str) -> bool:
+    return host.startswith(("localhost", "127.0.0.1", "::1"))
+
+
+def _refuse_unless_asked_by_name() -> None:
+    """This script's first act is DELETE FROM every table, against whatever
+    DESKIFY_DATABASE_URL happens to point at.
+
+    Locally that is the point -- `make seed` runs constantly. Anywhere else it
+    is one-way, against data somebody may care about, so it has to be asked
+    for by name. The rest of this codebase fails closed (app/config.py); the
+    one destructive script in it should too.
+
+    Checked BEFORE the connection is opened. Needing to reach a database to
+    be told "no" would mean an unreachable host fails with a DNS error
+    instead of the actual reason.
+    """
+    target = _target()
+    if _is_local(target) or "--yes" in sys.argv:
+        return
+
+    print(f"refusing to seed {target}", file=sys.stderr)
+    print("  That is not a local database, and seeding DELETEs every row in it.",
+          file=sys.stderr)
+    print("  If that is what you want, say so:", file=sys.stderr)
+    print("      uv run python -m app.seed --yes", file=sys.stderr)
+    raise SystemExit(1)
+
+
+async def _report_what_is_being_destroyed(s) -> None:
+    """Into the log, before the deletes. If this turns out to have been a
+    mistake, the size of it should be written down somewhere."""
+    counts = []
+    for t in ("organization", "site", "app_user", "resource", "booking"):
+        n = (await s.execute(text(f"SELECT count(*) FROM {t}"))).scalar()
+        if n:
+            counts.append(f"{n} {t}")
+    print(f"  replacing: {', '.join(counts) if counts else 'nothing, it is empty'}")
+
+
 def _at(day, hour: int, timezone: str) -> datetime:
     return datetime(day.year, day.month, day.day, hour, tzinfo=ZoneInfo(timezone))
 
@@ -168,7 +217,11 @@ async def _fit_out(s, org_id, site: Site, layout) -> Floor:
 
 
 async def seed() -> None:
+    _refuse_unless_asked_by_name()
     async with SessionLocal() as s:
+        print(f"seeding {_target()}")
+        await _report_what_is_being_destroyed(s)
+
         for t in TABLES:
             await s.execute(text(f"DELETE FROM {t}"))
 

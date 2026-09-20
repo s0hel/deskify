@@ -101,6 +101,21 @@ Migrations are run by hand against the production URL:
 cd api && env $(grep -v '^#' .env.prod | xargs) uv run alembic upgrade head
 ```
 
+**Seeding is destructive and refuses to touch a remote database by accident.**
+`app.seed` DELETEs every row before it writes, which is what you want a hundred
+times a day against localhost and never want by mistake anywhere else. It checks
+the host before opening a connection, so an unreachable database tells you the
+real reason rather than a DNS error, and `--yes` is the only way past it:
+
+```bash
+cd api && env $(grep -v '^#' .env.prod | xargs) uv run python -m app.seed --yes
+```
+
+Do not set `DESKIFY_ENVIRONMENT=dev` for this. `.env.prod` already carries the
+right value, and dev drops `ssl="require"` and re-enables asyncpg's statement
+cache, which the managed pooler rejects. It prints the host it is about to empty
+and the row counts it is replacing, before it deletes them.
+
 ## Configuration fails closed
 
 `DESKIFY_ENVIRONMENT` defaults to **`prod`**, not dev. Three things depend on it — the
