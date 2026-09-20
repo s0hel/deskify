@@ -54,6 +54,9 @@ export interface Floor {
   ordinal: number;
   plan_width: number | null;
   plan_height: number | null;
+  /** Names the drawing behind the desks; `planUrl` in booking/photos.ts
+   *  resolves it. Null for a floor nobody has drawn yet. */
+  plan_asset_key: string | null;
   resources: ApiResource[];
 }
 

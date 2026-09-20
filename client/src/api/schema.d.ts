@@ -526,6 +526,8 @@ export interface components {
             plan_width: number | null;
             /** Plan Height */
             plan_height: number | null;
+            /** Plan Asset Key */
+            plan_asset_key: string | null;
             /** Resources */
             resources: components["schemas"]["ResourceOut"][];
         };

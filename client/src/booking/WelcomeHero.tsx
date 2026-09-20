@@ -1,4 +1,5 @@
 import { firstName } from "../ui/bits";
+import { officePhoto } from "./photos";
 
 /**
  * The first thing anyone sees: which office, who they are, what day it is.
@@ -10,9 +11,15 @@ import { firstName } from "../ui/bits";
  * reason: the place you notice you are looking at the wrong office is the
  * place to change it (FR-1.9).
  *
- * The illustration is inline SVG, not an asset, so it themes with everything
- * else and costs no request. Its lit windows are derived from the site id, so
- * two offices look different and the same office always looks the same.
+ * An office with a photograph gets its photograph. One without gets the drawn
+ * illustration below -- inline SVG in the token palette, so it themes with
+ * everything else and costs no request, with lit windows derived from the
+ * site id so two offices look different and one office always looks the same.
+ *
+ * The fallback is not a placeholder for a missing asset; it is what most
+ * tenants will actually see. Photographing every office is a thing a customer
+ * does eventually, if at all, and the screen has to be finished before they
+ * do.
  */
 
 const WINDOW_COLS = 6;
@@ -101,9 +108,22 @@ export function WelcomeHero({
   chosen: boolean;
   onChangeSite: () => void;
 }) {
+  const photo = officePhoto(siteName);
+
   return (
     <section className="hero">
-      <OfficeBuilding siteId={siteId} />
+      {photo ? (
+        <img
+          className="hero__art hero__art--photo"
+          src={photo}
+          alt=""
+          /* Decorative: the office is named in the heading right below it,
+             so a description here would only repeat it to a screen reader. */
+          aria-hidden="true"
+        />
+      ) : (
+        <OfficeBuilding siteId={siteId} />
+      )}
       <div className="hero__body">
         <h2 className="display hero__greeting">
           Welcome to {siteName}, {firstName(name)}

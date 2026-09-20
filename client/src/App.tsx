@@ -19,6 +19,7 @@ import { RefusalSheet, type Refusal } from "./booking/RefusalSheet";
 import { TodayCard, NextInOffice } from "./booking/TodayCard";
 import { WeekStrip } from "./booking/WeekStrip";
 import { WelcomeHero } from "./booking/WelcomeHero";
+import { planUrl } from "./booking/photos";
 import { dayName, longLabel, siteToday, weekdayLabel } from "./booking/dates";
 import { DeskList } from "./floorplan/DeskList";
 import { FloorPlan, type Desk, type DeskState } from "./floorplan/FloorPlan";
@@ -330,6 +331,7 @@ export default function App() {
                 <FloorPlan
                   planWidth={floor.data.plan_width ?? 1600}
                   planHeight={floor.data.plan_height ?? 1000}
+                  planImageUrl={planUrl(floor.data.plan_asset_key)}
                   desks={desks}
                   states={states}
                   onSelect={setSelectedId}

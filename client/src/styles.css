@@ -630,6 +630,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
   height: 132px;
 }
 
+/* A photograph is the wrong shape for the slot more often than not, so it is
+   cropped to the centre rather than squashed into it. */
+.hero__art--photo { object-fit: cover; object-position: center 45%; }
+
 .hero__body { padding: 16px 18px 18px; }
 /* balance, so a two-line greeting breaks between the phrases rather than
    leaving one name stranded on its own line. */

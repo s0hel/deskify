@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1312 1052" width="1312" height="1052">
+<style>
+  .slab   { fill: #f4f2ed; }
+  .void   { fill: #e6e2d8; }
+  .wall   { fill: none; stroke: #43474e; stroke-width: 7; stroke-linejoin: round; }
+  .bench  { fill: #e3dfd4; stroke: #d2cdbf; stroke-width: 2; }
+  .room   { fill: #eae7f2; stroke: #c3bdd8; stroke-width: 3; }
+  .room--core  { fill: #dcd8cf; stroke: #c3beb2; }
+  .room--wc    { fill: #dcd8cf; stroke: #c3beb2; }
+  .room--cafe  { fill: #f0e4d8; stroke: #ddc9b4; }
+  .room--collab{ fill: #e2ecdf; stroke: #c4d8c0; }
+  .room--focus { fill: #eae7f2; stroke: #c3bdd8; }
+  .zone   { fill: none; stroke: #b9b3a5; stroke-width: 2; stroke-dasharray: 10 9; }
+  .rlabel { fill: #5c6067; font: 600 19px system-ui, sans-serif; }
+  .zlabel { fill: #8d8778; font: 700 15px system-ui, sans-serif;
+            letter-spacing: 1.4px; text-transform: uppercase; }
+
+  @media (prefers-color-scheme: dark) {
+    .slab   { fill: #1e2127; }
+    .void   { fill: #14161a; }
+    .wall   { stroke: #767d88; }
+    .bench  { fill: #272b32; stroke: #31363f; }
+    .room   { fill: #2b2e39; stroke: #3d4152; }
+    .room--core  { fill: #24272d; stroke: #343841; }
+    .room--wc    { fill: #24272d; stroke: #343841; }
+    .room--cafe  { fill: #322a26; stroke: #46392f; }
+    .room--collab{ fill: #232d29; stroke: #324037; }
+    .room--focus { fill: #2b2e39; stroke: #3d4152; }
+    .zone   { stroke: #454a53; }
+    .rlabel { fill: #9aa0a8; }
+    .zlabel { fill: #6d7884; }
+  }
+</style>
+<g class="plate">
+<rect class="slab" x="0" y="0" width="1312" height="1052"/>
+<rect class="void" x="446" y="336" width="420" height="300" rx="10"/>
+</g>
+<g class="zones">
+<rect class="zone" x="90" y="82" width="1132" height="208" rx="14"/>
+<text class="zlabel" x="96" y="72" text-anchor="start">Engineering</text>
+<rect class="zone" x="90" y="682" width="1132" height="208" rx="14"/>
+<text class="zlabel" x="96" y="672" text-anchor="start">Sales</text>
+</g>
+<g class="rooms">
+<rect class="room" x="110" y="336" width="310" height="140" rx="8"/>
+<rect class="room" x="110" y="492" width="310" height="144" rx="8"/>
+<rect class="room room--core" x="892" y="336" width="310" height="140" rx="8"/>
+<text class="rlabel" x="1047" y="413" text-anchor="middle">Lifts</text>
+<rect class="room room--wc" x="892" y="492" width="310" height="144" rx="8"/>
+<text class="rlabel" x="1047" y="571" text-anchor="middle">WC</text>
+<rect class="room room--cafe" x="110" y="896" width="600.6" height="120" rx="8"/>
+<text class="rlabel" x="410.3" y="963" text-anchor="middle">Kitchen</text>
+<rect class="room room--focus" x="765.2" y="896" width="196.56" height="120" rx="8"/>
+<rect class="room room--collab" x="1005.44" y="896" width="196.56" height="120" rx="8"/>
+<text class="rlabel" x="1103.72" y="963" text-anchor="middle">Lounge</text>
+</g>
+<g class="benches">
+<rect class="bench" x="110" y="110" width="324" height="152" rx="8"/>
+<rect class="bench" x="110" y="710" width="324" height="152" rx="8"/>
+<rect class="bench" x="494" y="110" width="324" height="152" rx="8"/>
+<rect class="bench" x="494" y="710" width="324" height="152" rx="8"/>
+<rect class="bench" x="878" y="110" width="324" height="152" rx="8"/>
+<rect class="bench" x="878" y="710" width="324" height="152" rx="8"/>
+</g>
+<g class="walls">
+<rect class="wall" x="0" y="0" width="1312" height="1052"/>
+</g>
+</svg>

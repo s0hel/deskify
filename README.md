@@ -10,14 +10,15 @@ Flex workspace booking. See [docs/PRD.md](docs/PRD.md) and
 ## Quick start
 
 ```bash
-make seed     # Postgres + migrations + a demo tenant: 3 offices, 300 desks in Tampa
+make seed     # Postgres + migrations + a demo tenant: 6 offices, 616 desks
+make plans    # redraw the floor-plan SVGs from their one definition
 make api      # API  -> http://localhost:8099  (/docs for OpenAPI)
 make web      # app  -> http://localhost:5173
 make test     # the full suite, both halves
 ```
 
 The app signs in as `priya@northwind.example` automatically in dev, opens on **her
-default office** — Tampa, of the three the seed creates — and books against the real
+default office** — Tampa, of the six the seed creates — and books against the real
 API. Tapping a free desk books it; tapping your own booking cancels it. Both the plan
 and the list do this.
 
@@ -156,6 +157,7 @@ Two decisions worth knowing:
   since gone falls back rather than opening the app on nothing.
 - **A home site is a default, not a fence.** You can book at any site in your org, and
   the seed shows it: Ren is homed at London Bridge and has desks in Tampa this week.
+  Sign in as `dana@` or `kofi@` instead and the app opens on Berlin or Singapore.
   The hero's line changes from "Change your office" to "Is this your usual office?"
   when the office on screen is the fallback rather than the user's answer.
 
@@ -163,6 +165,68 @@ Two decisions worth knowing:
 cross-tenant harness — which substitutes victim ids into *paths* — cannot reach it.
 That case is asserted by hand in `tests/test_home_site.py`, and the path is listed in
 the harness's `NO_OBJECT_ID` with that reason.
+
+## Floor plans: one definition, two outputs
+
+A floor plan exists twice — as desk coordinates in the database, and as a drawing
+behind them — and the two have to agree to the pixel or the desks sit in the corridor.
+So they are not authored twice. `api/app/floorplans.py` is the single definition;
+`app/seed.py` reads the desks out of it and `app/plans.py` renders the drawing to
+`client/public/plans/<key>.svg`, which `floor.plan_asset_key` names.
+
+```bash
+make plans                              # redraw
+cd api && uv run python -m app.plans --check   # what CI runs
+```
+
+The SVGs are committed, so a clean checkout builds without running Python, and drift
+fails the build the same way a stale generated API client does.
+
+Six offices, five archetypes, because one rectangle of evenly spaced dots tells you
+nothing about whether the plan component copes:
+
+| Office | Layout | Desks |
+|---|---|---|
+| Tampa | open banks of benching, rooms and core down one side | 300 |
+| Berlin Mitte | central spine, benching either side | 96 |
+| Singapore Raffles | **L-shaped plate** — two outline rects, not one | 72 |
+| London Bridge | courtyard around a **void**, rooms east and west | 60 |
+| Austin Domain | loft: mostly not desks | 48 |
+| Denver Union | loft, smaller | 40 |
+
+Tampa keeps the 300, so `make seed` still opens the app on the PRD §9.1 budget rather
+than on a toy.
+
+Three things are worth knowing before changing a layout:
+
+- **Nothing places a desk by hand.** `bench()` returns the seats *and* the rect they
+  sit on, from one calculation, so the furniture cannot drift from the seating.
+- **The invariants are tested, not eyeballed.** `tests/test_floorplans.py` asserts
+  every desk is on the floorplate, none is in an atrium, none overlaps another or a
+  bookable room's circle, and the committed SVG matches the generator. Each of those
+  has already caught something — desks off the end of the L-shaped wing, and a plate
+  sized for twice the benching that was placed in it.
+- **The drawing is loaded with `<image>`, so it is an isolated document.** No CSS from
+  the app reaches it, which is deliberate: the plan renders once and pan/zoom never
+  touches React (FloorPlan.tsx rule 1), and inlining would add a few hundred nodes to
+  that tree for nothing. The cost is that the theme has to come from inside, so the
+  generated stylesheet carries its own `prefers-color-scheme` block. The app's manual
+  `data-theme="light"` override cannot reach it.
+
+## Office photographs
+
+`client/src/assets/offices/<slug>.jpg` — `Berlin Mitte` becomes `berlin-mitte.jpg`.
+`siteSlug` in `client/src/booking/photos.ts` and `slugify` in `api/app/floorplans.py`
+are the same rule from opposite ends, tested against one list of cases.
+
+They are resolved with a glob, not named imports, so **a missing photo is not a build
+error** — the welcome hero falls back to its drawn illustration, which is what most
+tenants will actually see. Verified by building with the directory emptied.
+
+`*.jpg` there is **gitignored**. The images this was built against are iStock comps:
+watermarked, unlicensed previews. Committing them would put someone else's marked-up
+property in the repository and ship a watermark across the middle of the first screen
+anyone sees. Drop licensed files in with these names and they appear.
 
 ## Presence privacy
 
@@ -210,6 +274,8 @@ cd api && uv run pytest tests/test_concurrency.py -q
   the tenant boundary. Deleting the filter makes six of them fail.
 - **`test_home_site.py`** — the fallback, the choice, the stale pointer, and the
   body-parameter cross-tenant case the path-driven harness cannot see.
+- **`test_floorplans.py`** — the layout invariants above, one per floor. Geometry is
+  the kind of thing that looks fine in a screenshot and is wrong by 40 pixels.
 - **`test_team_week.py`** — the grid's privacy inheritance (no row *and* no count for a
   hidden teammate) and the forward-only boundary.
 
@@ -285,6 +351,8 @@ up on real hardware.
 api/
   app/
     models.py           schema (TDD §3)
+    floorplans.py       the ONE floor-layout definition
+    plans.py            renders it to client/public/plans/*.svg
     booking_service.py  the write path (TDD §4)
     policy.py           pure rules (TDD §4.3)
     repository.py       tenancy (TDD §15.1)
@@ -294,6 +362,7 @@ api/
 client/
   src/
     floorplan/          ONE component, viewer + editor (TDD §9)
+    assets/offices/     one photo per site, gitignored, optional
     native/             every Capacitor call behind an interface (TDD §10.2)
     api/                generated client + problem+json handling
     admin/              lazily loaded (TDD §10.1)

@@ -1,4 +1,4 @@
-.PHONY: up down migrate seed api web test test-api test-client build spike gen-api lint ios ios-open
+.PHONY: up down migrate seed api web test test-api test-client build spike gen-api plans lint ios ios-open
 
 # Settings fail closed: environment defaults to "prod", which refuses the
 # development signing key and disables /auth/dev-sign-in. Local targets opt in.
@@ -15,6 +15,9 @@ migrate: up
 
 seed: migrate
 	cd api && uv run python -m app.seed
+
+plans:             ## redraw client/public/plans/*.svg from app/floorplans.py
+	cd api && uv run python -m app.plans
 
 api: migrate
 	cd api && uv run uvicorn app.main:app --reload --port 8099

@@ -36,6 +36,11 @@ jobs:
       #   test_policy        -- pure rules, no database
       - run: uv run pytest -q
         working-directory: api
+      # The plan SVGs are committed so a clean checkout builds without Python.
+      # Same contract as the generated API client: drift fails the build.
+      - name: Fail if the plan drawings are stale
+        working-directory: api
+        run: uv run python -m app.plans --check
 
   client:
     runs-on: ubuntu-latest

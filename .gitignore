@@ -26,3 +26,10 @@ client/tsconfig.tsbuildinfo
 
 # written by `vercel build`; the version comes from pyproject.toml
 api/.python-version
+
+# Office photographs are per-deployment and the ones this was built against are
+# watermarked stock comps. See client/src/assets/offices/README.md. The wider
+# pattern covers the staging area above offices/ too, so a photo dropped in
+# to try out cannot be committed by an absent-minded `git add -A`.
+client/src/assets/**/*.jpg
+client/src/assets/*.jpg

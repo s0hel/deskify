@@ -67,6 +67,11 @@ class FloorOut(BaseModel):
     ordinal: int
     plan_width: int | None
     plan_height: int | None
+    #: Names the drawing behind the desks. The client resolves it to
+    #: /plans/<key>.svg; the API deliberately does not return a URL, because
+    #: where the asset is served from is the client's business (native builds
+    #: ship it in the bundle, the web build serves it from the origin).
+    plan_asset_key: str | None
     resources: list[ResourceOut]
 
 
@@ -270,6 +275,7 @@ async def get_floor(floor_id: uuid.UUID, repo: Repo) -> FloorOut:
     return FloorOut(
         id=floor.id, name=floor.name, ordinal=floor.ordinal,
         plan_width=floor.plan_width, plan_height=floor.plan_height,
+        plan_asset_key=floor.plan_asset_key,
         resources=[ResourceOut.model_validate(r) for r in resources],
     )
 
