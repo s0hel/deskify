@@ -57,14 +57,28 @@ verified and running.
 
 ## Deployed
 
-| | |
-|---|---|
-| Web | https://deskify-web-eight.vercel.app |
-| API | https://deskify-api-pi.vercel.app |
-| Database | Prisma Postgres, migrated to head |
+| | | Vercel root directory |
+|---|---|---|
+| Web | https://deskify-web-eight.vercel.app | `client` |
+| API | https://deskify-api-pi.vercel.app | `api` |
+| Database | Prisma Postgres, migrated to head | |
 
 ```bash
 curl https://deskify-api-pi.vercel.app/health
+```
+
+**Both projects deploy from a subdirectory, and that is a project setting, not
+something this repository can state.** Vercel reads `vercel.json` *from* the root
+directory, so `client/vercel.json` and `api/vercel.json` are only read when the
+setting is right — and when it is wrong the failure does not mention it. `deskify-web`
+spent its first day building at the repository root, where there is no `package.json`,
+and reported `ENOENT ... /vercel/path0/package.json` on every push while serving a
+months-stale build from its last good deployment. Check this first if a deploy fails
+in a way that makes no sense:
+
+```bash
+vercel project inspect deskify-web        # Root Directory should read: client
+vercel project update deskify-web --root-directory client --yes
 ```
 
 **Sign-in on this deployment is the development one.** Real OIDC needs Google or Entra
