@@ -86,28 +86,6 @@ cd api && env $(grep -v '^#' .env.prod | xargs) uv run alembic upgrade head
 
 ## Configuration fails closed
 
-> **Renaming in progress: `DESKFLOW_` → `DESKIFY_`.** The code reads the new prefix and
-> falls back to the old one per variable (`api/app/config.py`), because a deployment keeps
-> its variables in a dashboard rather than in this repository — and this file fails closed,
-> so a hard cutover would make the API *refuse to boot* rather than degrade. Production is
-> still on the legacy names and is healthy.
->
-> To finish it, on **both** Vercel projects:
->
-> ```bash
-> vercel env ls                       # what is still DESKFLOW_*
-> vercel env add DESKIFY_ENVIRONMENT production
-> vercel env rm  DESKFLOW_ENVIRONMENT production
-> ```
->
-> Repeat per variable; `DESKIFY_` wins wherever both are set, so this can go one at a time.
-> When `vercel env ls` shows no `DESKFLOW_` names, delete the shim in `config.py` and the
-> block of tests marked for deletion in `tests/test_config_guard.py`.
->
-> `"deskflow"` stays in `WEAK_DB_PASSWORDS` permanently — it is the published dev password
-> in this repo's history, and renaming the product does not make it safe.
-
-
 `DESKIFY_ENVIRONMENT` defaults to **`prod`**, not dev. Three things depend on it — the
 JWT signing key, the database credentials, and `/auth/dev-sign-in`, which mints a token
 for any user from an email alone. A forgotten variable must not hand out a published

@@ -16,7 +16,6 @@ rejected has leaked it somewhere worse than the config file.
 """
 
 import json
-import os
 from typing import Literal
 
 from pydantic import model_validator
@@ -27,29 +26,6 @@ from sqlalchemy.exc import ArgumentError
 #: The values shipped in source. Present so the guards can recognise them.
 DEV_JWT_SECRET = "dev-only-not-a-real-secret"
 DEV_DATABASE_URL = "postgresql+asyncpg://deskify:deskify@localhost:55432/deskify"
-
-#: ---------------------------------------------------------------------------
-#: Transitional: the prefix was DESKFLOW_ until the product was named Deskify.
-#:
-#: A deployment keeps its variables in a dashboard, not in this repository, so
-#: flipping the prefix here alone would break every environment until someone
-#: re-typed them by hand -- and this file fails CLOSED, so the API would refuse
-#: to boot rather than quietly degrade. Reading the legacy name when the new one
-#: is absent turns a coordinated cutover into a deploy-now, migrate-later.
-#:
-#: `setdefault`, so DESKIFY_ always wins where both are set and the migration is
-#: one variable at a time rather than all at once.
-#:
-#: DELETE THIS once `vercel env ls` on both projects shows no DESKFLOW_ names.
-#: Until then a deployment can be running on either, which is the point.
-#: ---------------------------------------------------------------------------
-_LEGACY_ENV_PREFIX = "DESKFLOW_"
-_ENV_PREFIX = "DESKIFY_"
-
-for _key, _value in list(os.environ.items()):
-    if _key.startswith(_LEGACY_ENV_PREFIX):
-        os.environ.setdefault(_ENV_PREFIX + _key[len(_LEGACY_ENV_PREFIX):], _value)
-
 
 #: HS256 keys shorter than this are weak. A guard that only rejected the exact
 #: default above would be defeated by someone typing "changeme".
@@ -68,7 +44,7 @@ WEAK_DB_PASSWORDS = frozenset(
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix=_ENV_PREFIX, env_file=".env")
+    model_config = SettingsConfigDict(env_prefix="DESKIFY_", env_file=".env")
 
     database_url: str = DEV_DATABASE_URL
     jwt_secret: str = DEV_JWT_SECRET
