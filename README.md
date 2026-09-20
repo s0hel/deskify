@@ -370,6 +370,45 @@ asserts the exact key set.
 The seed sets up both shapes so the difference is visible in the demo rather
 than only in tests: `priya@` is an org admin, `nadia@` administers Tampa alone.
 
+### The founding grant
+
+**There is no endpoint that creates the first org admin**, deliberately — an
+endpoint that creates an org admin is an endpoint that creates an org admin,
+and on a tenant that has none it is reachable by whoever finds it first. So
+the first grant on a new tenant is an operator action:
+
+```bash
+cd api && uv run python -m app.grant_admin --list
+cd api && uv run python -m app.grant_admin priya@northwind.example org_admin --apply
+cd api && uv run python -m app.grant_admin nadia@northwind.example site_admin --site Tampa --apply
+```
+
+Against a remote database, the same shape as the migration command above:
+
+```bash
+cd api && env $(grep -v '^#' .env.prod | xargs) \
+    uv run python -m app.grant_admin <email> org_admin --apply
+```
+
+Three things it will not do, each for a reason:
+
+- **It writes nothing without `--apply`.** Every run prints the host it is
+  pointed at and what it would do. A tool that mutates a production database
+  by default is one you find out about afterwards.
+- **It will not invent a scope.** `site_admin` without a site that resolves is
+  refused rather than stored as NULL, because a NULL scope reads as admin of
+  every office. Revision 0004's CHECK refuses the row; this refuses to build
+  it, so the operator gets a sentence rather than an IntegrityError.
+- **It cannot revoke.** Removing the last org admin leaves an organization
+  nobody can administer, and the console refuses exactly that. A CLI that
+  could revoke would be a way around a rule the product enforces on purpose.
+
+Unlike `app.seed` it does **not** refuse a remote host — reaching one is the
+point. It is additive and idempotent instead: nothing is deleted, and
+re-running it is a no-op. There is no `make` target for it, because the `make`
+targets export `DESKIFY_ENVIRONMENT=dev` and this is usually run against
+something that is not dev.
+
 ## Releasing a booking
 
 `release_booking` in `app/booking_service.py` is the one place a booking stops
@@ -446,6 +485,10 @@ cd api && uv run pytest tests/test_concurrency.py -q
 - **`test_cancellation.py`** — a colleague cannot cancel your desk, an admin
   for that site can, and an admin for a different one cannot.
 - **`test_authz.py`** — 9 tests, no database. The permission model is pure.
+- **`test_grant_admin.py`** — the founding-grant CLI, which runs against
+  production by design, so what it refuses matters as much as what it writes:
+  a dry run writes nothing, applying twice is a no-op, and a `site_admin`
+  grant whose site does not resolve is an error rather than a NULL scope.
 - **`test_team_week.py`** — the grid's privacy inheritance (no row *and* no count for a
   hidden teammate) and the forward-only boundary.
 
@@ -529,6 +572,7 @@ api/
     timezone.py         the ONE day-boundary rule (TDD §3.4)
     authz.py            who may administer what (TDD §6.6)
     audit.py            the admin trail, in the caller's transaction
+    grant_admin.py      the founding grant; there is no endpoint for it
     routers/
   tests/
 client/
