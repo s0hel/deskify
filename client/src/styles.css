@@ -1,52 +1,85 @@
 /**
  * Design tokens.
  *
- * Values from the reference design. Light is the designed theme; dark is a
- * derived counterpart rather than a second design, so the hues are held and
- * only the surfaces invert.
+ * Light is the designed theme; dark is a derived counterpart rather than a
+ * second design, so the hues are held and only the surfaces invert.
+ *
+ * Two things about this palette are structural, not decorative, and changing
+ * either one breaks components that assume them:
+ *
+ * 1. IN LIGHT, THE PAGE IS WHITE AND CARDS ARE TINTED -- the opposite of the
+ *    usual white-card-on-grey. A card is a shape you can see because it is
+ *    slightly bluer than the page, not because it floats above it, so cards
+ *    carry almost no shadow. `--elevated` is the white that sits back ON a
+ *    card: quiet buttons, tags, the inset list in a refusal.
+ * 2. IN DARK THAT RELATIONSHIP FLIPS -- the page is darkest and a card is
+ *    lighter, because a tint darker than an already dark page reads as a hole.
+ *    So `--elevated` is lighter than `--surface` there, not white.
+ *
+ * Anything that needs to read on top of a card must use `--elevated`, never
+ * `--ground`: on a white page in light mode the two are the same colour, and
+ * in dark mode `--ground` on a card is the hole described above.
  */
 
 :root {
-  --ground: #f5f4f0;
-  --surface: #ffffff;
-  --ink: #16181c;
-  --muted: #70747b;
-  --line: #e7e4dd;
-  --accent: #4340c4;
+  --ground: #ffffff;
+  --surface: #eef2f8;
+  --elevated: #ffffff;
+  --ink: #0f1834;
+  --muted: #5c6675;
+  --line: #d7e0ec;
+  --accent: #1b6fe0;
   --accent-ink: #ffffff;
-  --clay: #c4622f;
-  --danger: #b8433a;
+  /* "This one is yours", never "this is wrong" -- the booked dot, the your-desk
+     eyebrow, a colleague's ring. Amber rather than red for that reason, and
+     the only warm hue in an otherwise blue system. */
+  --clay: #b8690b;
+  --danger: #c62828;
+
+  /* The bottom bar is dark in BOTH themes. It is the app's one permanent
+     chrome, and a navigation bar that changes colour with the OS stops
+     reading as chrome. */
+  --nav: #0f1c3f;
+  --nav-ink: #9fb0cf;
+  --nav-on: #ffffff;
 
   /* resource state */
-  --state-free: #1e8f63;
-  --state-taken: #a9adb4;
-  --state-person: #4a5568;
-  --state-yours: #4340c4;
-  --state-zone: #7c6ae8;
+  --state-free: #1a8a5a;
+  --state-taken: #a3adbe;
+  --state-person: #4e5d75;
+  --state-yours: #1b6fe0;
+  --state-zone: #0e7490;
 
   --r-sm: 10px;
   --r-md: 14px;
   --r-lg: 20px;
   --r-pill: 999px;
 
-  --shadow-card: 0 1px 2px rgb(22 24 28 / 4%), 0 6px 16px rgb(22 24 28 / 6%);
-  --shadow-float: 0 2px 6px rgb(22 24 28 / 10%), 0 10px 28px rgb(22 24 28 / 12%);
+  /* Cards are tinted, not floated, so this is nearly nothing. Real elevation
+     -- sheets, the controls over the floor plan -- uses --shadow-float. */
+  --shadow-card: 0 1px 2px rgb(15 24 52 / 4%);
+  --shadow-float: 0 2px 6px rgb(15 24 52 / 10%), 0 10px 28px rgb(15 24 52 / 12%);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --ground: #121317;
-    --surface: #1b1d22;
-    --ink: #eef1f4;
-    --muted: #9aa0a8;
-    --line: #2b2e35;
-    --accent: #6f6ce0;
-    --clay: #d97b4a;
-    --danger: #d9615a;
-    --state-taken: #5d636c;
-    --state-person: #8b94a3;
-    --state-yours: #6f6ce0;
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 30%), 0 6px 16px rgb(0 0 0 / 35%);
+    --ground: #0b0f1a;
+    --surface: #161c28;
+    --elevated: #202838;
+    --ink: #e9eef6;
+    --muted: #97a3b6;
+    --line: #28313f;
+    --accent: #5b9bf5;
+    --clay: #dd9440;
+    --danger: #ef5350;
+    --nav: #0d1424;
+    --nav-ink: #8b97ad;
+    --state-free: #34a373;
+    --state-taken: #5b6577;
+    --state-person: #8994a8;
+    --state-yours: #5b9bf5;
+    --state-zone: #2596ad;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 30%);
     --shadow-float: 0 2px 6px rgb(0 0 0 / 40%), 0 10px 28px rgb(0 0 0 / 45%);
   }
 }
@@ -161,10 +194,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-weight: 600;
 }
 .btn--primary { background: var(--accent); color: var(--accent-ink); }
-/* On a surface the ground colour reads as a button; on the ground itself it
-   disappears, so it carries a hairline too. */
+/* White on a tinted card, which is where it usually sits. On the page itself
+   that is the page colour, so it carries a hairline too. */
 .btn--quiet {
-  background: var(--ground);
+  background: var(--elevated);
   color: var(--ink);
   border: 1px solid var(--line);
 }
@@ -173,9 +206,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* ---- pills and segmented controls --------------------------------------- */
 
+/* These float OVER the plan, which is itself --surface, so they need to be
+   the other one or they vanish into it. */
 .pill {
   display: inline-flex; align-items: center; gap: 6px;
-  background: var(--surface);
+  background: var(--elevated);
   border-radius: var(--r-pill);
   padding: 8px 14px;
   font-size: 14px;
@@ -186,7 +221,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 .seg {
   display: inline-flex;
-  background: var(--surface);
+  background: var(--elevated);
   border-radius: var(--r-pill);
   padding: 4px;
   box-shadow: var(--shadow-float);
@@ -206,7 +241,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 4px 10px;
   font-size: 11px; font-weight: 700;
   letter-spacing: 0.07em; text-transform: uppercase;
-  background: var(--ground);
+  background: var(--elevated);
   color: var(--muted);
 }
 .tag--free { color: var(--state-free); }
@@ -335,7 +370,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-size: 20px; font-weight: 700;
 }
 
-.alts { background: var(--ground); border-radius: var(--r-md); padding: 14px 16px; margin-top: 16px; }
+.alts { background: var(--elevated); border-radius: var(--r-md); padding: 14px 16px; margin-top: 16px; }
 .alts__row {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; padding: 7px 0; width: 100%;
@@ -355,8 +390,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 .tabbar {
   display: flex;
-  border-top: 1px solid var(--line);
-  background: var(--surface);
+  background: var(--nav);
   padding-bottom: env(safe-area-inset-bottom);
   flex: none;
 }
@@ -364,7 +398,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   flex: 1;
   border: none;
   background: transparent;
-  color: var(--muted);
+  color: var(--nav-ink);
   display: grid;
   justify-items: center;
   gap: 3px;
@@ -372,7 +406,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-size: 11px;
   font-weight: 600;
 }
-.tabbar__tab--on { color: var(--accent); }
+.tabbar__tab--on { color: var(--nav-on); }
 
 /* ---- people ------------------------------------------------------------- */
 
@@ -419,19 +453,21 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* ---- choice lists (visibility, absence) --------------------------------- */
 
+/* These sit inside a sheet, which is itself --surface, so they take the
+   white -- same card-on-tint relationship the page uses. */
 .choice {
   position: relative;
   display: block;
   width: 100%;
   text-align: left;
-  background: var(--surface);
+  background: var(--elevated);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   padding: 14px 44px 14px 16px;
 }
 .choice--on {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  background: color-mix(in srgb, var(--accent) 8%, var(--elevated));
 }
 .choice__label { display: block; font-weight: 600; font-size: 17px; }
 .choice--on .choice__label { color: var(--accent); }
@@ -536,7 +572,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   text-align: left;
 }
 .grid__row { padding: 5px 0; border-radius: var(--r-sm); }
-.grid__row:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+.grid__row:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
 
 .grid__name { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .grid__who {
@@ -638,6 +674,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* balance, so a two-line greeting breaks between the phrases rather than
    leaving one name stranded on its own line. */
 .hero__greeting { font-size: 28px; line-height: 1.15; text-wrap: balance; }
+/* The one word on this screen that is about the reader rather than the
+   building. Accent, so the greeting is not a wall of one colour. */
+.hero__name { color: var(--accent); }
+
 .hero__date { margin: 6px 0 0; }
 
 .hero__switch {

@@ -126,7 +126,8 @@ export function WelcomeHero({
       )}
       <div className="hero__body">
         <h2 className="display hero__greeting">
-          Welcome to {siteName}, {firstName(name)}
+          Welcome to {siteName},{" "}
+          <span className="hero__name">{firstName(name)}</span>
         </h2>
         <p className="meta hero__date">Today is {todayLabel}</p>
         <button className="hero__switch" onClick={onChangeSite}>

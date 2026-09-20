@@ -1,34 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2290 902" width="2290" height="902">
 <style>
-  .slab   { fill: #f4f2ed; }
-  .void   { fill: #e6e2d8; }
-  .wall   { fill: none; stroke: #43474e; stroke-width: 7; stroke-linejoin: round; }
-  .bench  { fill: #e3dfd4; stroke: #d2cdbf; stroke-width: 2; }
-  .room   { fill: #eae7f2; stroke: #c3bdd8; stroke-width: 3; }
-  .room--core  { fill: #dcd8cf; stroke: #c3beb2; }
-  .room--wc    { fill: #dcd8cf; stroke: #c3beb2; }
-  .room--cafe  { fill: #f0e4d8; stroke: #ddc9b4; }
-  .room--collab{ fill: #e2ecdf; stroke: #c4d8c0; }
-  .room--focus { fill: #eae7f2; stroke: #c3bdd8; }
-  .zone   { fill: none; stroke: #b9b3a5; stroke-width: 2; stroke-dasharray: 10 9; }
-  .rlabel { fill: #5c6067; font: 600 19px system-ui, sans-serif; }
-  .zlabel { fill: #8d8778; font: 700 15px system-ui, sans-serif;
+  .slab   { fill: #f6f9fc; }
+  .void   { fill: #e2eaf4; }
+  .wall   { fill: none; stroke: #37435a; stroke-width: 7; stroke-linejoin: round; }
+  .bench  { fill: #e1e9f3; stroke: #cfdae8; stroke-width: 2; }
+  .room   { fill: #e2ecfb; stroke: #bed2ee; stroke-width: 3; }
+  .room--core  { fill: #dde4ee; stroke: #c6d0de; }
+  .room--wc    { fill: #dde4ee; stroke: #c6d0de; }
+  .room--cafe  { fill: #f6ecdb; stroke: #e2d0b3; }
+  .room--collab{ fill: #ddefe7; stroke: #bfdccf; }
+  .room--focus { fill: #e2ecfb; stroke: #bed2ee; }
+  .zone   { fill: none; stroke: #aebbcd; stroke-width: 2; stroke-dasharray: 10 9; }
+  .rlabel { fill: #5c6675; font: 600 19px system-ui, sans-serif; }
+  .zlabel { fill: #8794a8; font: 700 15px system-ui, sans-serif;
             letter-spacing: 1.4px; text-transform: uppercase; }
 
   @media (prefers-color-scheme: dark) {
-    .slab   { fill: #1e2127; }
-    .void   { fill: #14161a; }
-    .wall   { stroke: #767d88; }
-    .bench  { fill: #272b32; stroke: #31363f; }
-    .room   { fill: #2b2e39; stroke: #3d4152; }
-    .room--core  { fill: #24272d; stroke: #343841; }
-    .room--wc    { fill: #24272d; stroke: #343841; }
-    .room--cafe  { fill: #322a26; stroke: #46392f; }
-    .room--collab{ fill: #232d29; stroke: #324037; }
-    .room--focus { fill: #2b2e39; stroke: #3d4152; }
-    .zone   { stroke: #454a53; }
-    .rlabel { fill: #9aa0a8; }
-    .zlabel { fill: #6d7884; }
+    .slab   { fill: #141a26; }
+    .void   { fill: #0a0e17; }
+    .wall   { stroke: #6d7b92; }
+    .bench  { fill: #1e2533; stroke: #29313f; }
+    .room   { fill: #1d2738; stroke: #2e3b52; }
+    .room--core  { fill: #191f2b; stroke: #29313f; }
+    .room--wc    { fill: #191f2b; stroke: #29313f; }
+    .room--cafe  { fill: #2a2318; stroke: #3d3323; }
+    .room--collab{ fill: #14251f; stroke: #20372c; }
+    .room--focus { fill: #1d2738; stroke: #2e3b52; }
+    .zone   { stroke: #3a465a; }
+    .rlabel { fill: #97a3b6; }
+    .zlabel { fill: #6b7890; }
   }
 </style>
 <g class="plate">
