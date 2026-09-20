@@ -272,13 +272,19 @@ Three decisions in the client are worth knowing:
 are the same rule from opposite ends, tested against one list of cases.
 
 They are resolved with a glob, not named imports, so **a missing photo is not a build
-error** — the welcome hero falls back to its drawn illustration, which is what most
-tenants will actually see. Verified by building with the directory emptied.
+error** — the welcome hero falls back to its drawn illustration, which is what a
+tenant who has not photographed their offices gets. Verified by building with the
+directory emptied.
 
-`*.jpg` there is **gitignored**. The images this was built against are iStock comps:
-watermarked, unlicensed previews. Committing them would put someone else's marked-up
-property in the repository and ship a watermark across the middle of the first screen
-anyone sees. Drop licensed files in with these names and they appear.
+They are **committed**, because Vercel builds from git and a photo that is not in the
+repository does not exist on the deployed site. The ones in there now are **iStock
+comps: watermarked, unlicensed previews**, kept deliberately so the demo shows real
+buildings — the watermark sits across the middle of the first screen anyone sees.
+Replace them with licensed files under the same names before this goes in front of
+anyone outside the team; no code changes.
+
+The directory one level up, `client/src/assets/`, is a staging area for images not
+yet assigned to an office. It stays gitignored.
 
 ## Presence privacy
 
