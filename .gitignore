@@ -23,3 +23,6 @@ client/tsconfig.tsbuildinfo
 *.env.prod
 .vercel
 .env*
+
+# written by `vercel build`; the version comes from pyproject.toml
+api/.python-version

@@ -1185,7 +1185,7 @@ Deployed 2026-09-19. Two Vercel projects, one managed Postgres.
 
 | Piece | Where |
 |---|---|
-| API | Vercel Python function, `api/index.py`, single ASGI entrypoint |
+| API | Vercel Python function, `app/main.py`, single ASGI entrypoint (Vercel's FastAPI preset; `[tool.vercel] entrypoint` in `pyproject.toml`) |
 | Web | Vercel static build of the Vite bundle |
 | Database | Prisma Postgres (`pooled.db.prisma.io`), Postgres 17 |
 

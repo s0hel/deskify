@@ -25,3 +25,12 @@ pythonpath = ["."]
 
 [tool.ruff]
 line-length = 100
+
+[tool.vercel]
+# Vercel's FastAPI preset scans only "default locations" -- app.py/index.py/
+# server.py/main.py/wsgi.py/asgi.py at the project root or inside src/ or app/.
+# This project root is THIS directory, so app/main.py is a default location.
+# Naming it explicitly is still worth it: the scanner finds five FastAPI
+# instances here -- the app and four test modules -- and "whichever it picks"
+# is not a deployment strategy.
+entrypoint = "app.main:app"
