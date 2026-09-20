@@ -173,6 +173,38 @@ RULES: tuple = (
 )
 
 
-def evaluate(ctx: PolicyContext) -> list[Denial]:
-    """Run every rule. Returns all denials, in declared order."""
-    return [d for d in (rule(ctx) for rule in RULES) if d is not None]
+#: The rules an administrator may set aside (FR-8.6). Naming them here, as a
+#: set, is what keeps "override" from meaning "skip the checks": everything
+#: absent from this tuple stays in force for an admin.
+#:
+#: What is deliberately NOT overridable, and why:
+#:   - `rule_blackout` and `rule_opening_hours` describe the BUILDING. The
+#:     office is shut; an override would book a desk nobody can reach.
+#:   - `rule_resource_available` is a desk that is broken or gone. An admin
+#:     took it out of service on purpose, usually themselves.
+#:   - `rule_assigned_desk` is somebody's own desk (FR-6.7). Giving it away
+#:     over their head is not an override, it is a different decision.
+#:   - `rule_site_capacity` is a HARD limit (FR-6.3), often a fire-safety or
+#:     works-council number rather than a preference. Overriding it here
+#:     would also be a lie: the authoritative check is the locked counter in
+#:     the booking transaction (TDD §4.2), which this cannot reach.
+#:
+#: What remains is the three genuinely configurable limits -- how far ahead,
+#: how many at once, and who may use a zone.
+OVERRIDABLE_RULES: tuple = (
+    rule_zone_permission,
+    rule_booking_horizon,
+    rule_max_concurrent,
+)
+
+
+def evaluate(ctx: PolicyContext, *, override: bool = False) -> list[Denial]:
+    """Run every rule. Returns all denials, in declared order.
+
+    `override` is FR-8.6's administrative override and drops exactly the rules
+    in OVERRIDABLE_RULES. It is a parameter of the pure function rather than a
+    branch in the caller so that the set of rules an admin can set aside is
+    stated in one readable place and tested without a database.
+    """
+    rules = tuple(r for r in RULES if not (override and r in OVERRIDABLE_RULES))
+    return [d for d in (rule(ctx) for rule in rules) if d is not None]

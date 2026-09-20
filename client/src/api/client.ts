@@ -17,8 +17,19 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: string,
     readonly denials: Denial[] = [],
+    /**
+     * The server's own sentence, when it has one.
+     *
+     * Deliberately NOT shown for booking denials -- those are rebuilt on the
+     * client from code + params so they can be translated (api/messages.ts).
+     * The admin console is the exception and shows it: an admin refusal is
+     * specific to data only the server has ("Tampa has 12 bookings recorded
+     * against Europe/Berlin"), and a generic client-side string would throw
+     * away the only part that tells the admin what to do next.
+     */
+    readonly detail: string | null = null,
   ) {
-    super(code);
+    super(detail || code);
   }
 }
 
@@ -59,7 +70,12 @@ export async function api<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.code ?? "UNKNOWN", body.denials ?? []);
+    throw new ApiError(
+      res.status,
+      body.code ?? "UNKNOWN",
+      body.denials ?? [],
+      typeof body.detail === "string" ? body.detail : null,
+    );
   }
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
 }

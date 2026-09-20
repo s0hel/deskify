@@ -97,7 +97,12 @@ export interface paths {
         /** List Sites */
         get: operations["list_sites_sites_get"];
         put?: never;
-        post?: never;
+        /**
+         * Create Site
+         * @description FR-8.1. Org admins only -- a site admin administers the office they
+         *     were given, and minting new ones would make that scoping decorative.
+         */
+        post: operations["create_site_sites_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -118,7 +123,18 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update Site
+         * @description FR-8.1.
+         *
+         *     The timezone is the one field that cannot always change. TDD §3.5: a site's
+         *     timezone is the day-boundary rule for every booking already written against
+         *     it, so moving it silently re-dates history -- a booking made for Tuesday
+         *     becomes a booking for Monday, and the utilization numbers reported last
+         *     month stop reconciling. A genuine office move is a new site, and this says
+         *     so rather than quietly succeeding.
+         */
+        patch: operations["update_site_sites__site_id__patch"];
         trace?: never;
     };
     "/sites/{site_id}/days": {
@@ -176,7 +192,16 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update Floor
+         * @description FR-8.1.
+         *
+         *     `plan_width` and `plan_height` are absent from FloorPatch on purpose. Plan
+         *     space is frozen on first upload (TDD §9.1) because every desk's plan_x and
+         *     plan_y is expressed in it; resizing it moves 300 desks at once, invisibly.
+         *     A new plan is a new upload, which is FR-8.2's job.
+         */
+        patch: operations["update_floor_floors__floor_id__patch"];
         trace?: never;
     };
     "/floors/{floor_id}/state": {
@@ -245,7 +270,22 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Cancel Booking */
+        /**
+         * Cancel Booking
+         * @description FR-2.12 for the person who made it, FR-8.6 for an administrator.
+         *
+         *     IT IS YOURS OR YOU ADMINISTER THE SITE. The repository scopes by
+         *     organization, which is not the same as by user: before this check, any
+         *     employee could cancel any colleague's desk by id.
+         *
+         *     Somebody else's booking is 404 rather than 403, matching the tenancy layer
+         *     -- a 403 would confirm that the id names a real booking, and "does
+         *     <this id> exist" is exactly what an employee should not be able to ask
+         *     about a colleague whose presence is hidden from them (FR-5.6).
+         *
+         *     Releasing goes through `release_booking` so the day's capacity counter is
+         *     decremented here exactly as it is for an admin override or a deactivation.
+         */
         delete: operations["cancel_booking_bookings__booking_id__delete"];
         options?: never;
         head?: never;
@@ -383,6 +423,401 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/floors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Floors For Admin
+         * @description Every floor the caller administers, with its desk count.
+         *
+         *     The count is the number an admin actually wants: a floor row with no desks
+         *     on it is an unfinished import, and it should be visible as one.
+         */
+        get: operations["list_floors_for_admin_admin_floors_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/floors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Floor
+         * @description FR-8.1. The site id is in the BODY, so the path-driven cross-tenant
+         *     harness cannot reach it -- covered by hand in tests/test_admin.py.
+         */
+        post: operations["create_floor_floors_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/zones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Zones */
+        get: operations["list_zones_admin_zones_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/zones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Zone */
+        post: operations["create_zone_zones_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/zones/{zone_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Zone
+         * @description A zone with desks in it is not deleted, because the desks would keep a
+         *     dangling zone_id and quietly lose whatever restriction the zone carried
+         *     (FR-6.4). Move the desks first; the refusal says how many.
+         */
+        delete: operations["delete_zone_zones__zone_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Zone */
+        patch: operations["update_zone_zones__zone_id__patch"];
+        trace?: never;
+    };
+    "/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Users
+         * @description FR-8.4. The whole directory, unfiltered by presence privacy.
+         *
+         *     That is the one deliberate exception to `app/presence.py`: privacy hides a
+         *     colleague's WHEREABOUTS from other employees, and it was never a claim
+         *     that the employer does not know who works there. What this endpoint does
+         *     not return is where anyone is sitting -- there is no booking detail in
+         *     UserAdminOut, only a count, so a hidden colleague's office days stay
+         *     hidden from an admin reading this screen too.
+         */
+        get: operations["list_users_admin_users_get"];
+        put?: never;
+        /** Create User */
+        post: operations["create_user_admin_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update User */
+        patch: operations["update_user_admin_users__user_id__patch"];
+        trace?: never;
+    };
+    "/admin/users/{user_id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Roles
+         * @description FR-1.8. Replaces the whole set, so the screen showing it and the rows
+         *     behind it cannot drift.
+         *
+         *     THE LAST ADMIN IS PROTECTED. An org with no org_admin is an org nobody can
+         *     administer -- not a support ticket, a data-repair job -- so removing the
+         *     final one is refused. Demoting yourself while a colleague still holds the
+         *     role is allowed: locking an admin out of their own demotion is the kind of
+         *     rule that gets worked around with a database console.
+         */
+        put: operations["set_roles_admin_users__user_id__roles_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users/{user_id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deactivate User
+         * @description FR-8.4, TDD §6.6. Deactivating releases what the person left behind.
+         *
+         *     One transaction: status flips, every future booking is cancelled, the
+         *     day's capacity counter is decremented for each, and an audit row records
+         *     the count. A leaver whose desks stay booked is the most visible way for
+         *     this product to be wrong -- a row of permanently occupied desks nobody
+         *     ever sits at.
+         *
+         *     PAST BOOKINGS ARE LEFT ALONE. Deleting them would falsify utilization that
+         *     has already been reported to a customer (TDD §6.6); they age out through
+         *     the retention purge (FR-9.7) instead.
+         *
+         *     NOT YET DONE HERE: revoking the refresh-token families. There is no
+         *     refresh token to revoke -- FR-1.4 is unbuilt -- and a `pass` with a
+         *     comment would read as if there were.
+         */
+        post: operations["deactivate_user_admin_users__user_id__deactivate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users/{user_id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reactivate User
+         * @description Their bookings are not restored. The desks went back to the pool and
+         *     someone else may be sitting at them.
+         */
+        post: operations["reactivate_user_admin_users__user_id__reactivate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Groups */
+        get: operations["list_groups_admin_groups_get"];
+        put?: never;
+        /** Create Group */
+        post: operations["create_group_admin_groups_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/groups/{group_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Group
+         * @description FR-5.8 reaches anchor_days from here as well as from a team lead.
+         */
+        patch: operations["update_group_admin_groups__group_id__patch"];
+        trace?: never;
+    };
+    "/admin/groups/{group_id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Members
+         * @description Replaces the membership. An id from another tenant is a 404 for the
+         *     same reason a site id would be -- the repository never sees it.
+         */
+        put: operations["set_members_admin_groups__group_id__members_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/resources/{resource_id}/out-of-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Take Out Of Service
+         * @description FR-8.6. `rule_resource_available` in app/policy.py then refuses new
+         *     bookings on it, and the plan renders it `unavailable`.
+         *
+         *     Existing bookings are NOT cancelled unless asked: a desk taken out of
+         *     service from next Monday should not silently evict whoever is sitting at
+         *     it today, and the admin who does mean that gets a count back.
+         */
+        post: operations["take_out_of_service_resources__resource_id__out_of_service_post"];
+        /** Return To Service */
+        delete: operations["return_to_service_resources__resource_id__out_of_service_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bookings/admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Book For User
+         * @description FR-8.6/FR-2.10 -- book on behalf of someone.
+         *
+         *     Both identities are recorded, per TDD §6.6: `user_id` is who gets the
+         *     desk, `created_by` is who did it. An admin-created booking that looked
+         *     self-made would make the audit log a fiction.
+         *
+         *     `override_policy` relaxes exactly the rules in `policy.OVERRIDABLE_RULES`
+         *     -- the horizon, the concurrent-booking limit and zone permission. Opening
+         *     hours, blackouts, a desk that is out of service, someone else's assigned
+         *     desk and the site capacity cap all still refuse, because they describe the
+         *     building rather than a preference. The exclusion constraint is untouched
+         *     either way (TDD §4.1), so this cannot double-book a desk.
+         */
+        post: operations["book_for_user_bookings_admin_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Bookings For Admin
+         * @description FR-8.6 -- view any booking at an administered site, for one day.
+         *
+         *     Not privacy-filtered, and that is the line worth being explicit about:
+         *     `app/presence.py` governs what EMPLOYEES may learn about each other, and
+         *     an admin overriding a booking has to be able to see it. FR-9.5's rule
+         *     still holds -- this is one day at one site, the shape of an operational
+         *     view, not the per-person attendance record a date range would give.
+         */
+        get: operations["list_bookings_for_admin_admin_bookings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Audit
+         * @description FR-8.8. Read-only by construction: there is no endpoint that edits or
+         *     deletes an audit row, and adding one would defeat the table.
+         *
+         *     Org admins only. A site admin's actions are logged the same way, but the
+         *     log spans the organization and cannot be usefully narrowed to one office
+         *     -- a role grant belongs to no site.
+         */
+        get: operations["list_audit_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -404,6 +839,127 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdminBookingIn */
+        AdminBookingIn: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /**
+             * Resource Id
+             * Format: uuid
+             */
+            resource_id: string;
+            /**
+             * On
+             * Format: date
+             */
+            on: string;
+            /**
+             * Slot
+             * @default day
+             * @enum {string}
+             */
+            slot: "day" | "am" | "pm";
+            /**
+             * Override Policy
+             * @default false
+             */
+            override_policy: boolean;
+        };
+        /** AdminBookingOut */
+        AdminBookingOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /**
+             * Resource Id
+             * Format: uuid
+             */
+            resource_id: string;
+            /** Resource Name */
+            resource_name: string;
+            /**
+             * Local Date
+             * Format: date
+             */
+            local_date: string;
+            /** Status */
+            status: string;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+        };
+        /** AdminBookingRow */
+        AdminBookingRow: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** User Name */
+            user_name: string;
+            /**
+             * Resource Id
+             * Format: uuid
+             */
+            resource_id: string;
+            /** Resource Name */
+            resource_name: string;
+            /**
+             * Site Id
+             * Format: uuid
+             */
+            site_id: string;
+            /**
+             * Local Date
+             * Format: date
+             */
+            local_date: string;
+            /** Status */
+            status: string;
+            /** Booked By */
+            booked_by?: string | null;
+        };
+        /** AuditRow */
+        AuditRow: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Actor Id */
+            actor_id: string | null;
+            /** Actor Name */
+            actor_name: string | null;
+            /** Action */
+            action: string;
+            /** Target Type */
+            target_type: string | null;
+            /** Target Id */
+            target_id: string | null;
+            /** Detail */
+            detail: {
+                [key: string]: unknown;
+            };
+            /** At */
+            at: string;
+        };
         /** BookingOut */
         BookingOut: {
             /**
@@ -471,6 +1027,12 @@ export interface components {
             /** Declaration */
             declaration: string | null;
         };
+        /** DeactivationOut */
+        DeactivationOut: {
+            user: components["schemas"]["UserAdminOut"];
+            /** Released */
+            released: number;
+        };
         /** DeclarationIn */
         DeclarationIn: {
             /**
@@ -506,6 +1068,55 @@ export interface components {
             /** Start Url */
             start_url: string;
         };
+        /** FloorAdminOut */
+        FloorAdminOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Site Id
+             * Format: uuid
+             */
+            site_id: string;
+            /** Name */
+            name: string;
+            /** Ordinal */
+            ordinal: number;
+            /** Plan Asset Key */
+            plan_asset_key: string | null;
+            /** Plan Width */
+            plan_width: number | null;
+            /** Plan Height */
+            plan_height: number | null;
+            /**
+             * Desk Count
+             * @default 0
+             */
+            desk_count: number;
+        };
+        /** FloorIn */
+        FloorIn: {
+            /**
+             * Site Id
+             * Format: uuid
+             */
+            site_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Ordinal
+             * @default 0
+             */
+            ordinal: number;
+            /** Plan Asset Key */
+            plan_asset_key?: string | null;
+            /** Plan Width */
+            plan_width?: number | null;
+            /** Plan Height */
+            plan_height?: number | null;
+        };
         /**
          * FloorOut
          * @description The heavy, stable, cacheable half of the floor-plan read (TDD §5.2).
@@ -530,6 +1141,15 @@ export interface components {
             plan_asset_key: string | null;
             /** Resources */
             resources: components["schemas"]["ResourceOut"][];
+        };
+        /** FloorPatch */
+        FloorPatch: {
+            /** Name */
+            name?: string | null;
+            /** Ordinal */
+            ordinal?: number | null;
+            /** Plan Asset Key */
+            plan_asset_key?: string | null;
         };
         /**
          * FloorStateOut
@@ -596,6 +1216,45 @@ export interface components {
             /** Office Days */
             office_days: number;
         };
+        /** GroupIn */
+        GroupIn: {
+            /** Name */
+            name: string;
+            /**
+             * Kind
+             * @default team
+             * @enum {string}
+             */
+            kind: "team" | "department" | "custom";
+            /** Anchor Days */
+            anchor_days?: number[];
+        };
+        /** GroupOut */
+        GroupOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Kind */
+            kind: string;
+            /** Anchor Days */
+            anchor_days: unknown[];
+            /**
+             * Member Count
+             * @default 0
+             */
+            member_count: number;
+        };
+        /** GroupPatch */
+        GroupPatch: {
+            /** Name */
+            name?: string | null;
+            /** Anchor Days */
+            anchor_days?: number[] | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -634,6 +1293,37 @@ export interface components {
             /** Home Site Id */
             home_site_id: string | null;
             home_site: components["schemas"]["SiteOut"] | null;
+            /**
+             * Is Admin
+             * @default false
+             */
+            is_admin: boolean;
+            /** Administered Site Ids */
+            administered_site_ids?: string[] | null;
+        };
+        /** MembersIn */
+        MembersIn: {
+            /** User Ids */
+            user_ids: string[];
+        };
+        /** OutOfServiceIn */
+        OutOfServiceIn: {
+            /** Reason */
+            reason: string;
+            /**
+             * Release Bookings
+             * @default false
+             */
+            release_bookings: boolean;
+        };
+        /** OutOfServiceOut */
+        OutOfServiceOut: {
+            /** Resource */
+            resource: {
+                [key: string]: unknown;
+            };
+            /** Released */
+            released: number;
         };
         /** PersonDetailOut */
         PersonDetailOut: {
@@ -712,6 +1402,32 @@ export interface components {
             /** Plan Y */
             plan_y: number | null;
         };
+        /** RoleIn */
+        RoleIn: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "team_lead" | "site_admin" | "org_admin";
+            /** Scope Id */
+            scope_id?: string | null;
+        };
+        /** RoleOut */
+        RoleOut: {
+            /** Role */
+            role: string;
+            /** Scope Type */
+            scope_type: string;
+            /** Scope Id */
+            scope_id: string | null;
+            /** Scope Name */
+            scope_name?: string | null;
+        };
+        /** RolesIn */
+        RolesIn: {
+            /** Roles */
+            roles: components["schemas"]["RoleIn"][];
+        };
         /** ScheduleDay */
         ScheduleDay: {
             /**
@@ -733,6 +1449,59 @@ export interface components {
             /** Floor Name */
             floor_name?: string | null;
         };
+        /** SiteAdminOut */
+        SiteAdminOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Timezone */
+            timezone: string;
+            /** Opening Hours */
+            opening_hours: {
+                [key: string]: unknown;
+            };
+            /** Capacity Cap */
+            capacity_cap: number | null;
+            /** Check In Enabled */
+            check_in_enabled: boolean;
+            /** Geofence Lat */
+            geofence_lat: number | null;
+            /** Geofence Lng */
+            geofence_lng: number | null;
+            /** Geofence Radius M */
+            geofence_radius_m: number;
+        };
+        /** SiteIn */
+        SiteIn: {
+            /** Name */
+            name: string;
+            /** Timezone */
+            timezone: string;
+            /** Opening Hours */
+            opening_hours?: {
+                [key: string]: unknown;
+            };
+            /** Capacity Cap */
+            capacity_cap?: number | null;
+            /**
+             * Check In Enabled
+             * @default true
+             */
+            check_in_enabled: boolean;
+            /** Geofence Lat */
+            geofence_lat?: number | null;
+            /** Geofence Lng */
+            geofence_lng?: number | null;
+            /**
+             * Geofence Radius M
+             * @default 150
+             */
+            geofence_radius_m: number;
+        };
         /** SiteOut */
         SiteOut: {
             /**
@@ -748,6 +1517,27 @@ export interface components {
             capacity_cap: number | null;
             /** Check In Enabled */
             check_in_enabled: boolean;
+        };
+        /** SitePatch */
+        SitePatch: {
+            /** Name */
+            name?: string | null;
+            /** Timezone */
+            timezone?: string | null;
+            /** Opening Hours */
+            opening_hours?: {
+                [key: string]: unknown;
+            } | null;
+            /** Capacity Cap */
+            capacity_cap?: number | null;
+            /** Check In Enabled */
+            check_in_enabled?: boolean | null;
+            /** Geofence Lat */
+            geofence_lat?: number | null;
+            /** Geofence Lng */
+            geofence_lng?: number | null;
+            /** Geofence Radius M */
+            geofence_radius_m?: number | null;
         };
         /** TeamOut */
         TeamOut: {
@@ -792,6 +1582,51 @@ export interface components {
             /** Expires In */
             expires_in: number;
         };
+        /** UserAdminOut */
+        UserAdminOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Email */
+            email: string;
+            /** Display Name */
+            display_name: string;
+            /** Status */
+            status: string;
+            /** Home Site Id */
+            home_site_id: string | null;
+            /** Presence Visibility */
+            presence_visibility: string;
+            /** Teams */
+            teams: string[];
+            /** Roles */
+            roles: components["schemas"]["RoleOut"][];
+            /** Future Bookings */
+            future_bookings: number;
+        };
+        /** UserIn */
+        UserIn: {
+            /** Email */
+            email: string;
+            /** Display Name */
+            display_name: string;
+            /** Home Site Id */
+            home_site_id?: string | null;
+            /**
+             * Locale
+             * @default en
+             */
+            locale: string;
+        };
+        /** UserPatch */
+        UserPatch: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Home Site Id */
+            home_site_id?: string | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -816,6 +1651,53 @@ export interface components {
             in_office: components["schemas"]["PersonOut"][];
             /** Away */
             away: components["schemas"]["PersonOut"][];
+        };
+        /** ZoneIn */
+        ZoneIn: {
+            /**
+             * Floor Id
+             * Format: uuid
+             */
+            floor_id: string;
+            /** Name */
+            name: string;
+            /** Polygon */
+            polygon?: unknown[];
+            /** Restricted To Group Id */
+            restricted_to_group_id?: string | null;
+        };
+        /** ZoneOut */
+        ZoneOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Floor Id
+             * Format: uuid
+             */
+            floor_id: string;
+            /** Name */
+            name: string;
+            /** Polygon */
+            polygon: unknown[];
+            /** Restricted To Group Id */
+            restricted_to_group_id: string | null;
+            /**
+             * Resource Count
+             * @default 0
+             */
+            resource_count: number;
+        };
+        /** ZonePatch */
+        ZonePatch: {
+            /** Name */
+            name?: string | null;
+            /** Polygon */
+            polygon?: unknown[] | null;
+            /** Restricted To Group Id */
+            restricted_to_group_id?: string | null;
         };
     };
     responses: never;
@@ -989,6 +1871,41 @@ export interface operations {
             };
         };
     };
+    create_site_sites_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SiteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_site_sites__site_id__get: {
         parameters: {
             query?: never;
@@ -1009,6 +1926,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SiteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_site_sites__site_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                site_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SitePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteAdminOut"];
                 };
             };
             /** @description Validation Error */
@@ -1112,6 +2066,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FloorOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_floor_floors__floor_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                floor_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FloorPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FloorAdminOut"];
                 };
             };
             /** @description Validation Error */
@@ -1517,6 +2508,731 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_floors_for_admin_admin_floors_get: {
+        parameters: {
+            query?: {
+                site_id?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FloorAdminOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_floor_floors_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FloorIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FloorAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_zones_admin_zones_get: {
+        parameters: {
+            query?: {
+                floor_id?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ZoneOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_zone_zones_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ZoneIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ZoneOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_zone_zones__zone_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                zone_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_zone_zones__zone_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                zone_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ZonePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ZoneOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_users_admin_users_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserAdminOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_user_admin_users_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_user_admin_users__user_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_roles_admin_users__user_id__roles_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RolesIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deactivate_user_admin_users__user_id__deactivate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeactivationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reactivate_user_admin_users__user_id__reactivate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserAdminOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_groups_admin_groups_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_group_admin_groups_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_group_admin_groups__group_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GroupPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_members_admin_groups__group_id__members_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                group_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MembersIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    take_out_of_service_resources__resource_id__out_of_service_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                resource_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutOfServiceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutOfServiceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    return_to_service_resources__resource_id__out_of_service_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                resource_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutOfServiceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    book_for_user_bookings_admin_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminBookingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBookingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_bookings_for_admin_admin_bookings_get: {
+        parameters: {
+            query: {
+                on: string;
+                site_id?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBookingRow"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_audit_audit_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                action?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditRow"][];
+                };
             };
             /** @description Validation Error */
             422: {

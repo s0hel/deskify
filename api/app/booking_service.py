@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select, text
 from sqlalchemy.dialects.postgresql import Range
@@ -141,7 +141,12 @@ async def create_booking(
     now: datetime,
     created_by: uuid.UUID | None = None,
     policy_values: dict | None = None,
+    override: bool = False,
 ) -> Booking:
+    """`override` is FR-8.6's administrative override. It relaxes only the
+    rules named in `policy.OVERRIDABLE_RULES` -- never the capacity counter
+    below, and never the exclusion constraint, so an override still cannot
+    double-allocate a desk."""
     resource = await repo.get(Resource, resource_id)
     if resource is None:
         raise NotFound("resource")
@@ -153,7 +158,7 @@ async def create_booking(
         session, repo, user_id=user_id, resource=resource, site=site,
         start=start, end=end, now=now, policy_values=policy_values,
     )
-    denials = evaluate(ctx)
+    denials = evaluate(ctx, override=override)
     if denials:
         raise PolicyDenied(denials=[d.as_dict() for d in denials])
 
@@ -217,3 +222,61 @@ async def create_booking(
             raise ResourceTaken(resource_id=str(resource_id)) from exc
         raise
     return booking
+
+
+#: Statuses that no longer occupy a resource. A booking in one of these has
+#: already given its capacity back, so releasing it again must not.
+RELEASED_STATUSES = ("cancelled", "released_no_show")
+
+
+async def release_booking(
+    session: AsyncSession,
+    booking: Booking,
+    *,
+    status: str = "cancelled",
+    reason: str | None = None,
+) -> bool:
+    """Give a booking's desk AND its share of the day's capacity back.
+
+    The one place a booking stops occupying a resource -- an employee
+    cancelling, an admin overriding (FR-8.6), a deactivation releasing what
+    someone left behind (FR-8.4), and in due course the no-show sweep
+    (FR-4.4). Returns False if it was already released.
+
+    THE COUNTER IS THE POINT. `create_booking` increments
+    `site_day_capacity.booked_count` and, until this existed, nothing ever
+    decremented it: on a site with a cap (FR-6.3), a cancel-and-rebook cycle
+    consumed capacity permanently and the site eventually refused everyone
+    while its desks sat empty. The row is locked FOR UPDATE exactly as the
+    increment locks it, so the two orderings cannot interleave into a lost
+    update, and the count is floored at zero rather than trusted -- a negative
+    counter would hand out capacity that does not exist, which is the worse of
+    the two ways to be wrong.
+
+    The booking row is never deleted. The exclusion constraint only considers
+    live statuses (TDD §4.1), so a cancelled row stops blocking the slot while
+    staying in the history the utilization reports are built on.
+    """
+    if booking.status in RELEASED_STATUSES:
+        return False
+
+    booking.status = status
+    booking.released_at = datetime.now(tz=UTC)
+    if reason:
+        booking.cancellation_reason = reason
+
+    await session.execute(
+        text(
+            "SELECT booked_count FROM site_day_capacity "
+            "WHERE site_id = :site AND local_date = :d FOR UPDATE"
+        ),
+        {"site": booking.site_id, "d": booking.local_date},
+    )
+    await session.execute(
+        text(
+            "UPDATE site_day_capacity SET booked_count = GREATEST(booked_count - 1, 0) "
+            "WHERE site_id = :site AND local_date = :d"
+        ),
+        {"site": booking.site_id, "d": booking.local_date},
+    )
+    return True

@@ -14,7 +14,7 @@ from httpx import ASGITransport, AsyncClient
 from app.auth import mint_access_token
 from app.db import get_session
 from app.main import app
-from tests.conftest import make_org
+from tests.conftest import grant_role, make_org
 
 #: Endpoints that take no tenant-owned object id, so there is nothing to
 #: cross-tenant. Each needs a reason.
@@ -28,13 +28,29 @@ NO_OBJECT_ID = {
     # reach it. Covered explicitly by test_home_site.py::
     # test_another_tenants_site_cannot_become_your_home.
     "/me/home-site",
-    "/sites",           # collection: tenancy asserted separately below
+    # Collection GET and org-scoped POST share a path: both create in, or read
+    # from, the caller's own tenant.
+    "/sites",
     "/bookings",        # collection: ditto
     "/bookings/validate",
     "/people",          # collection, privacy-filtered; see test_presence_privacy.py
     # The path parameter is a DATE, and the row is always the caller's own.
     # There is no other tenant's object to aim at.
     "/me/declarations/{on}",
+    # --- admin (FR-8.x). Collections and create endpoints: the tenant comes
+    # from the token, and the id they take is in the BODY, which this
+    # path-driven harness cannot substitute into. Each body-id case is
+    # asserted by hand in tests/test_admin.py -- see
+    # test_admin.py::test_an_admin_cannot_reach_another_tenant_through_a_body.
+    "/floors",          # POST: site_id in the body
+    "/zones",           # POST: floor_id in the body
+    "/bookings/admin",  # POST: user_id and resource_id in the body
+    "/admin/users",     # collection + create, scoped to the caller's org
+    "/admin/groups",    # ditto
+    "/admin/floors",    # collection, filtered to administered sites
+    "/admin/zones",     # ditto
+    "/admin/bookings",  # ditto
+    "/audit",           # collection, scoped to the caller's org
 }
 
 
@@ -75,9 +91,23 @@ def client(db):
 
 @pytest.mark.parametrize("method,path", object_id_paths())
 async def test_cannot_touch_another_orgs_objects(method, path, db, client):
-    """Authenticate as Acme; aim every object-id endpoint at Globex's objects."""
+    """Authenticate as Acme; aim every object-id endpoint at Globex's objects.
+
+    ACME'S USER IS AN ORG ADMIN HERE, and that is the point rather than a
+    convenience. Without the grant every admin endpoint would answer 403 --
+    "you are not an administrator" -- and the test would pass without ever
+    reaching the tenancy check it exists to exercise. Granting the strongest
+    role in the org makes this the assertion worth having: being an
+    administrator of YOUR organization confers nothing over anyone else's.
+
+    The two answers are not interchangeable and both are deliberate. 403 is a
+    fact about the caller and discloses nothing; 404 is the answer about an
+    object, and must stay 404 so that it cannot confirm the object exists
+    (TDD §15.1, app/authz.py).
+    """
     acme = await make_org(db, "Acme")
     globex = await make_org(db, "Globex")
+    await grant_role(db, acme, acme["user"], "org_admin")
 
     token = mint_access_token(acme["user"].id, acme["org"].id)
     headers = {"Authorization": f"Bearer {token}"}
@@ -86,6 +116,9 @@ async def test_cannot_touch_another_orgs_objects(method, path, db, client):
     victim_ids = {
         "{site_id}": globex["site"].id,
         "{floor_id}": globex["floor"].id,
+        "{zone_id}": globex["zone"].id,
+        "{resource_id}": globex["desk"].id,
+        "{group_id}": globex["team"].id,
         "{user_id}": globex["user"].id,
         "{team_id}": globex["team"].id,
         "{booking_id}": uuid.uuid4(),
@@ -106,9 +139,19 @@ async def test_cannot_touch_another_orgs_objects(method, path, db, client):
         if url.endswith(("/state", "/people"))
         else None
     )
+    # Bodies that satisfy validation, so a 422 never stands in for the 404
+    # this is actually asserting. Content, not shape, is what is being tested.
+    required = {
+        "/resources/{resource_id}/out-of-service": {"reason": "Monitor replaced"},
+        "/admin/users/{user_id}/roles": {"roles": []},
+        "/admin/groups/{group_id}/members": {"user_ids": []},
+    }
+    # Everything else that writes takes an all-optional body, so an empty
+    # object is valid and the request reaches the handler.
+    body = required.get(path, {} if method in ("POST", "PUT", "PATCH") else None)
 
     async with client as c:
-        resp = await c.request(method, url, headers=headers, params=params)
+        resp = await c.request(method, url, headers=headers, params=params, json=body)
 
     assert resp.status_code == 404, (
         f"{method} {path} leaked across tenants: got {resp.status_code} "

@@ -152,6 +152,14 @@ export interface Me {
    * a second opinion about which office it is showing.
    */
   home_site: Site | null;
+  /**
+   * FR-1.8. Whether to offer the admin console at all. It is not the
+   * permission -- every admin endpoint re-checks the grants server-side,
+   * because a client that shows a button is not a client that may press it.
+   */
+  is_admin: boolean;
+  /** The offices this user administers, or null meaning every one of them. */
+  administered_site_ids: string[] | null;
 }
 
 export interface Booking {

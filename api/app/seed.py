@@ -34,6 +34,7 @@ from app.models import (
     GroupMember,
     Organization,
     Resource,
+    RoleGrant,
     Site,
     UserGroup,
     Zone,
@@ -42,12 +43,25 @@ from app.timezone import local_today
 
 ANCHOR_DAYS = {"Engineering": [2, 4], "Design": [3], "Sales": [2]}
 
+#: FR-1.8. Who can open the admin console in the demo, and over what.
+#:
+#: Priya is the org admin because she is who the app signs in as, so the
+#: console is visible without knowing to switch user. Nadia is a site admin
+#: for Tampa ALONE, which is the more interesting of the two: sign in as her
+#: and the console shows one office out of six, with no People or Activity
+#: section at all. A scoped role that looks identical to an unscoped one in
+#: the demo is a scoped role nobody will notice is broken.
+ROLE_GRANTS = [
+    ("priya", "org_admin", None),
+    ("nadia", "site_admin", "Tampa"),
+]
+
 TABLES = (
     # Child rows first. group_member references app_user, so deleting users
     # before memberships trips a foreign key -- and the seed then half-fails in
     # a way that looks like the new code is broken.
     "booking", "site_day_capacity", "day_declaration", "group_member",
-    "user_group", "resource", "zone", "floor", "app_user", "site",
+    "user_group", "role_grant", "resource", "zone", "floor", "app_user", "site",
     "email_domain", "policy", "audit_log", "idempotency_key", "job",
     "organization",
 )
@@ -297,6 +311,15 @@ async def seed() -> None:
                 local_date=day, status="confirmed", created_by=users[handle].id,
             ))
 
+        for handle, role, office in ROLE_GRANTS:
+            s.add(RoleGrant(
+                organization_id=org.id,
+                user_id=users[handle].id,
+                role=role,
+                scope_type="org" if office is None else "site",
+                scope_id=None if office is None else sites[office].id,
+            ))
+
         for handle, index, kind in DECLARATIONS:
             s.add(DayDeclaration(
                 organization_id=org.id, user_id=users[handle].id,
@@ -319,6 +342,8 @@ async def seed() -> None:
         print("       dana@ is homed at Berlin Mitte and kofi@ at Singapore Raffles,")
         print("       so the app opens somewhere different for each of them")
         print("       (jo@northwind.example is set to 'nobody' -- she should not appear)")
+        print("       priya@ is an org admin; nadia@ administers Tampa only,")
+        print("       so the console looks different depending on who you are")
 
 
 if __name__ == "__main__":

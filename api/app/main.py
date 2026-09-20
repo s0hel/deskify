@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.errors import DeskifyError, handle
-from app.routers import auth, core, people
+from app.routers import admin, auth, core, people
 
 structlog.configure(processors=[structlog.processors.add_log_level,
                                 structlog.processors.TimeStamper(fmt="iso"),
@@ -31,6 +31,7 @@ app.add_exception_handler(DeskifyError, handle)
 app.include_router(auth.router)
 app.include_router(core.router)
 app.include_router(people.router)
+app.include_router(admin.router)
 
 # /auth/dev-sign-in issues a valid token for any known email with no
 # credential, so it is mounted only where it has been asked for: in dev, or

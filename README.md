@@ -42,6 +42,9 @@ run, so `make test` never empties the tenant a running app is showing you.
 | Team, colleague and profile screens; presence privacy (FR-5.1/5.2/5.5/5.6) | Done |
 | Default office per user, and a home screen built on it (FR-1.9 home site, FR-2.1) | Done |
 | Team week grid with anchor days (FR-5.4) | Done |
+| Role grants and the authorization layer (FR-1.8) | Done — `api/app/authz.py` |
+| Admin console: offices, people, overrides, audit (FR-8.1/8.4/8.6/8.8) | Done |
+| Admin console: floor-plan editor (FR-8.2), CSV import (FR-8.3) | **Not started** |
 | Generated TypeScript client | Done — `client/src/api/schema.d.ts` |
 | OIDC end to end for one IdP | **Blocked on IdP credentials** (T6) |
 | 300-desk floor-plan spike on device | **Harness ready, gate not yet run on hardware** |
@@ -286,6 +289,109 @@ anyone outside the team; no code changes.
 The directory one level up, `client/src/assets/`, is a staging area for images not
 yet assigned to an office. It stays gitignored.
 
+## Who may administer what
+
+`role_grant(user_id, role, scope_type, scope_id)` — TDD §6.6, and the whole
+model is two rules:
+
+- **Grants are additive, and holding none is being an employee.** There is no
+  role column on `app_user` and no row to write when someone joins, so "can
+  this person administer this office?" has one answer rather than two that can
+  disagree.
+- **An org grant covers every site; a site grant covers exactly one.** A
+  `site_admin` row with a NULL scope would read as admin of everywhere, so the
+  database refuses to store one (revision 0004) *and* `app/authz.py` treats one
+  as granting nothing. Failing closed on the way in and on the way out.
+
+The decision is a pure function of the grants and the object's scope, tested
+without a database in `tests/test_authz.py` exactly as the policy rules are.
+
+**403 here, 404 in the tenancy layer, and they are not inconsistent.** The
+tenancy layer answers "does this object exist for you", where a 403 would
+confirm that an id names a real object in someone else's org. This answers
+"you are not an administrator", which is a fact about the caller and discloses
+nothing they do not already know — and a 404 there would send an employee
+hunting for a page that is in front of them.
+
+Two harnesses hold the line, both driven from the live OpenAPI schema so a new
+endpoint is covered the day it is added:
+
+```bash
+cd api && uv run pytest tests/test_admin.py tests/test_authz.py -q
+```
+
+- `test_every_admin_endpoint_refuses_an_employee` — every admin operation,
+  aimed at the caller's *own* objects, so the only thing that can refuse is
+  the permission check.
+- `test_cross_tenant.py` now authenticates as an **org admin** of Acme before
+  aiming at Globex. That is the assertion worth having: the strongest role in
+  an organization confers nothing over anyone else's. Without the grant those
+  cases would stop at 403 and never reach the tenancy check they exist for.
+
+## The admin console
+
+`client/src/admin/`, behind a lazy route boundary — `npm run build` puts it in
+its own chunk, and the employee bundle does not carry it.
+
+The tabs follow the caller's grants: a site admin gets Offices and Today, and
+People and Activity are **not rendered** rather than rendered and refusing. A
+control that is always going to answer 403 is worse than no control, because
+pressing it is the only way to find that out. `GET /me` returns `is_admin` and
+`administered_site_ids` (NULL meaning every office) for exactly this, and it is
+not the permission — every endpoint re-checks server-side.
+
+Three decisions worth knowing:
+
+- **A site's timezone cannot change once bookings exist.** It *is* the
+  day-boundary rule for every booking already recorded there, so moving it
+  re-dates history — a Tuesday booking becomes a Monday one and last month's
+  utilization stops reconciling. The API refuses it with the count (TDD §3.5),
+  and the console does not offer the field at all rather than offering one
+  that usually fails.
+- **Deactivating releases what the leaver left behind**, in one transaction:
+  status, every future booking, the capacity counter for each, and an audit
+  row carrying the count. A leaver whose desks stay booked is the most visible
+  way for this product to be wrong. Past bookings are kept — deleting them
+  would falsify utilization already reported to a customer.
+- **"Upcoming" is measured in each office's own timezone.** `date.today()` is
+  the server's date, and an org spanning UTC+14 and UTC-12 has no single
+  today, so a UTC server is wrong about one of those offices at every moment.
+  `upcoming_bookings` in `app/routers/admin.py` takes a loose SQL window and
+  applies the exact boundary per row, where the site is known.
+
+The directory lists everyone regardless of their presence setting — the one
+deliberate exception to `app/presence.py`, because privacy governs what
+*colleagues* learn about each other and was never a claim that the employer
+does not know who works there. What it must not become is a way around FR-5.6,
+so the payload carries a count of upcoming bookings and never which desk on
+which day. `test_the_directory_does_not_disclose_where_a_hidden_colleague_sits`
+asserts the exact key set.
+
+The seed sets up both shapes so the difference is visible in the demo rather
+than only in tests: `priya@` is an org admin, `nadia@` administers Tampa alone.
+
+## Releasing a booking
+
+`release_booking` in `app/booking_service.py` is the one place a booking stops
+occupying a resource — an employee cancelling, an admin overriding, a
+deactivation, and in due course the no-show sweep (FR-4.4).
+
+It exists because of two defects that were live until it did:
+
+- **The capacity counter only ever went up.** `create_booking` increments
+  `site_day_capacity.booked_count` and nothing decremented it, so a site with
+  a cap (FR-6.3) lost a seat on every cancel-and-rebook cycle and would
+  eventually refuse everyone while its desks sat empty. The row is locked
+  `FOR UPDATE` on the way down exactly as on the way up, and floored at zero —
+  a negative counter hands out capacity that does not exist, which is the
+  worse of the two ways to be wrong.
+- **`DELETE /bookings/{id}` only checked the tenant.** The repository scopes by
+  organization, which is not the same as by user, so any employee could cancel
+  any colleague's desk by id. The schema-driven cross-tenant harness could not
+  see it, because it is a same-tenant case; `tests/test_cancellation.py` covers
+  it by hand. Somebody else's booking is 404, not 403, for the same reason as
+  everywhere else.
+
 ## Presence privacy
 
 Three settings — everyone, my teams only, nobody — plus an org-wide kill switch in
@@ -334,6 +440,12 @@ cd api && uv run pytest tests/test_concurrency.py -q
   body-parameter cross-tenant case the path-driven harness cannot see.
 - **`test_floorplans.py`** — the layout invariants above, one per floor. Geometry is
   the kind of thing that looks fine in a screenshot and is wrong by 40 pixels.
+- **`test_admin.py`** — the employee-refusal harness above, the scoping of a
+  site admin, the body-parameter cross-tenant cases the path-driven harness
+  cannot reach, and that a failed admin change leaves no audit row.
+- **`test_cancellation.py`** — a colleague cannot cancel your desk, an admin
+  for that site can, and an admin for a different one cannot.
+- **`test_authz.py`** — 9 tests, no database. The permission model is pure.
 - **`test_team_week.py`** — the grid's privacy inheritance (no row *and* no count for a
   hidden teammate) and the forward-only boundary.
 
@@ -415,6 +527,8 @@ api/
     policy.py           pure rules (TDD §4.3)
     repository.py       tenancy (TDD §15.1)
     timezone.py         the ONE day-boundary rule (TDD §3.4)
+    authz.py            who may administer what (TDD §6.6)
+    audit.py            the admin trail, in the caller's transaction
     routers/
   tests/
 client/
@@ -423,7 +537,7 @@ client/
     assets/offices/     one photo per site, gitignored, optional
     native/             every Capacitor call behind an interface (TDD §10.2)
     api/                generated client + problem+json handling
-    admin/              lazily loaded (TDD §10.1)
+    admin/              console screens; lazily loaded (TDD §10.1)
   capacitor.config.ts   no server.url, deliberately
 ```
 
@@ -433,5 +547,9 @@ client/
 
 1. Fetch through `TenantRepository`. It refuses models not in `TENANT_SCOPED`.
 2. Return 404, not 403, for another tenant's object.
-3. Run `make test` — the cross-tenant harness picks the endpoint up automatically.
-4. Run `make gen-api` and commit `client/src/api/schema.d.ts`; CI fails on drift.
+3. If it is an admin endpoint: depend on `current_admin`, and call
+   `assert_org()` or `assert_site()` **after** the repository lookup, so
+   another tenant's id is already a 404 before authorization can answer 403
+   about it. Both harnesses pick the endpoint up automatically.
+4. Run `make test` — the cross-tenant harness picks the endpoint up automatically.
+5. Run `make gen-api` and commit `client/src/api/schema.d.ts`; CI fails on drift.

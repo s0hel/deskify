@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from "react";
+import { useState } from "react";
 
 import { useMe, useSetVisibility, type Visibility } from "../api/hooks";
 import { Sheet } from "../ui/Sheet";
@@ -29,16 +29,19 @@ const OPTIONS: { value: Visibility; label: string; detail: string }[] = [
   },
 ];
 
-// Lazily loaded, so the admin bundle never sits in the employee cold-start
-// path (TDD §10.1).
-const AdminConsole = lazy(() => import("../admin/AdminConsole"));
-
-export function MeScreen({ onSignOut }: { onSignOut: () => void }) {
+export function MeScreen({
+  onSignOut,
+  onOpenAdmin,
+}: {
+  onSignOut: () => void;
+  /** The console replaces the whole screen, including the app's own topbar
+   *  and tab bar, so App owns it -- the same way it owns PersonScreen. */
+  onOpenAdmin: () => void;
+}) {
   const me = useMe(true);
   const setVisibility = useSetVisibility();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [officeOpen, setOfficeOpen] = useState(false);
-  const [adminOpen, setAdminOpen] = useState(false);
 
   if (!me.data) {
     return (
@@ -96,28 +99,28 @@ export function MeScreen({ onSignOut }: { onSignOut: () => void }) {
         </div>
       </section>
 
-      <section className="section pad">
-        <span className="eyebrow">Workplace</span>
-        {adminOpen ? (
-          <div className="card">
-            <Suspense fallback={<p className="meta">Loading console…</p>}>
-              <AdminConsole />
-            </Suspense>
-            <button
-              className="btn btn--quiet"
-              style={{ marginTop: 14 }}
-              onClick={() => setAdminOpen(false)}
-            >
-              Close
-            </button>
-          </div>
-        ) : (
-          <button className="row-card" onClick={() => setAdminOpen(true)}>
-            <span className="person__name">Admin console</span>
+      {/* FR-1.8. The door exists only for someone who holds a grant. It is
+          not the permission -- every admin endpoint re-checks server-side --
+          but an employee should not be shown a room they cannot enter. */}
+      {me.data.is_admin && (
+        <section className="section pad">
+          <span className="eyebrow">Workplace</span>
+          <button className="row-card" onClick={onOpenAdmin}>
+            <span>
+              <span className="person__name">Admin console</span>
+              <br />
+              <span className="meta">
+                {me.data.administered_site_ids === null
+                  ? "Every office, people and permissions"
+                  : `${me.data.administered_site_ids.length} office${
+                      me.data.administered_site_ids.length === 1 ? "" : "s"
+                    }`}
+              </span>
+            </span>
             <Chevron />
           </button>
-        )}
-      </section>
+        </section>
+      )}
 
       <div className="pad section">
         <button className="btn btn--quiet btn--danger-text" onClick={onSignOut}>

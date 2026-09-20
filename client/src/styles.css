@@ -716,3 +716,283 @@ button { font: inherit; color: inherit; cursor: pointer; }
   color: inherit;
 }
 .heading-pick svg { color: var(--accent); flex: none; }
+
+/* ==========================================================================
+   Admin console (FR-8.x)
+   ==========================================================================
+
+   The console is the one screen in this product that is DENSE on purpose.
+   The employee app is a phone app with one decision per screen; the console
+   is a workplace manager auditing six offices, and the same generous spacing
+   there turns one list into four scrolls of it. So: smaller type, tighter
+   rows, and forms that stack rather than float in cards.
+
+   It still has to work at phone width -- there is one bundle and one app, and
+   an admin opening it on the train is an ordinary case, not an edge one. Rows
+   wrap, nothing is in a fixed-width column, and the widest thing on the
+   screen is an input at 100%.
+
+   It reads on --ground, not on a card. Nesting the console's own cards inside
+   a page-level one gives every form half the width it needs, and the tinted
+   card behind tinted cards flattens the hierarchy the console depends on. */
+
+/* Its own scroll container: the console replaces the whole screen, so `.app`
+   (height: 100dvh, overflow: hidden) has nothing else to scroll it. */
+.admin {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 18px 16px 40px;
+}
+
+/* Wide enough for a form and a list of offices, narrow enough that a line of
+   hint text stays readable. The console runs in a browser as often as on a
+   phone, and full-width forms on a 27-inch monitor are unreadable. */
+.admin__head,
+.admin__tabs,
+.admin__body {
+  max-width: 760px;
+}
+
+.admin__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.admin__close { width: auto; flex: none; padding: 8px 16px; }
+
+.admin__tabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  overflow-x: auto;
+  /* The tab strip scrolls on a narrow screen rather than wrapping to two
+     rows, which would move the content down as you switch section. */
+  scrollbar-width: none;
+}
+.admin__tabs::-webkit-scrollbar { display: none; }
+
+.admin__body { margin-top: 18px; }
+
+.admin-card {
+  background: var(--surface);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.admin-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  color: inherit;
+}
+.admin-card__head .meta { display: block; margin-top: 2px; }
+
+.admin-card__title { font-weight: 650; font-size: 15px; }
+
+.admin-card__mark {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--elevated);
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.admin-card__tags { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+
+.admin-card__body {
+  padding: 4px 16px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.admin-form { display: grid; gap: 14px; margin-top: 14px; }
+
+.admin-field { display: grid; gap: 5px; }
+.admin-field__label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.admin-field__hint {
+  display: block;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.admin-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--elevated);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+}
+.admin-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* An editable value that reads as the row's title until you click it --
+   renaming a floor should not look like filling in a form. */
+.admin-input--flush {
+  border-color: transparent;
+  background: none;
+  padding: 2px 4px;
+  font-weight: 650;
+}
+.admin-input--flush:hover { border-color: var(--line); background: var(--elevated); }
+
+.admin-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+}
+.admin-check input { margin-top: 3px; flex: none; }
+
+/* The team grid's chip row scrolls sideways, because there it is a week and
+   the seventh day is where you expect it. A set of six offices is a set, not
+   a sequence: nothing tells you there is a Denver past the right edge, so
+   here it wraps instead. */
+.admin .chiprow,
+.admin-row .chiprow {
+  flex-wrap: wrap;
+  overflow-x: visible;
+}
+
+.admin-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+.admin-inline .admin-input { flex: 1 1 180px; width: auto; }
+.admin-inline .btn { width: auto; flex: none; }
+.admin-inline .admin-field { flex: 1 1 180px; }
+
+.admin-sub { margin-top: 20px; display: grid; gap: 10px; }
+
+.admin-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.admin-row:last-child { border-bottom: none; }
+.admin-row__main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.admin-row__main .btn { width: auto; flex: none; padding: 6px 12px; font-size: 13px; }
+.admin-row__more {
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-zonelist {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0 0 0 12px;
+  border-left: 2px solid var(--line);
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+}
+.admin-zonelist li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.admin-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--elevated);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+/* Clay, not red. This is "needs your attention", not "something is broken" --
+   the same distinction the resource states make. */
+.admin-tag--warn {
+  color: var(--clay);
+  border-color: color-mix(in srgb, var(--clay) 40%, transparent);
+  background: color-mix(in srgb, var(--clay) 10%, var(--elevated));
+}
+.admin-tag--quiet { opacity: 0.7; }
+
+.admin-problem {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--danger) 10%, var(--elevated));
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  color: var(--danger);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.admin-confirm {
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: var(--r-sm);
+  background: var(--elevated);
+  border: 1px solid var(--line);
+}
+.admin-confirm .meta { line-height: 1.5; }
+.admin-confirm__row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.admin-confirm__row .btn { width: auto; flex: none; }
+
+.admin-empty {
+  margin: 0;
+  padding: 14px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.admin-audit {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+.admin-audit > li {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.admin-audit > li:last-child { border-bottom: none; }
+.admin-audit__line { line-height: 1.5; }
+.admin-audit__detail {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0 0 0 12px;
+  border-left: 2px solid var(--line);
+  display: grid;
+  gap: 3px;
+  font-size: 13px;
+  /* Values line up so a column of them can be scanned for the one that
+     changed, rather than read. */
+  font-variant-numeric: tabular-nums;
+}

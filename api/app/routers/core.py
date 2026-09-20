@@ -10,9 +10,11 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.booking_service import create_booking
+from app.authz import Grant, administers_site, is_admin
+from app.authz import administered_site_ids as _administered_sites
+from app.booking_service import create_booking, release_booking
 from app.db import get_session
-from app.deps import Principal, current_principal, tenant_repo
+from app.deps import Principal, current_principal, principal_grants, tenant_repo
 from app.errors import NotFound
 from app.models import (
     AppUser,
@@ -33,6 +35,7 @@ router = APIRouter(tags=["core"])
 Repo = Annotated[TenantRepository, Depends(tenant_repo)]
 Me = Annotated[Principal, Depends(current_principal)]
 Db = Annotated[AsyncSession, Depends(get_session)]
+Grants = Annotated[frozenset[Grant], Depends(principal_grants)]
 
 
 class SiteOut(BaseModel):
@@ -92,9 +95,20 @@ class MeOut(BaseModel):
     #: "which office am I looking at?" has exactly one answer (FR-2.1).
     #: NULL only for an org with no sites at all.
     home_site: SiteOut | None
+    #: FR-1.8. Whether to offer the admin console at all. The client uses this
+    #: to decide whether the entry point exists; it is NOT the permission --
+    #: every admin endpoint re-checks the grants itself, because a client that
+    #: shows a button is not a client that may press it.
+    is_admin: bool = False
+    #: The offices this user administers, or NULL meaning every office in the
+    #: org. Lets the console open on a site admin's own site rather than on a
+    #: picker they have one choice in.
+    administered_site_ids: list[uuid.UUID] | None = None
 
 
-async def _me_out(repo: TenantRepository, principal: Principal) -> MeOut:
+async def _me_out(
+    repo: TenantRepository, principal: Principal, grants: frozenset[Grant] = frozenset()
+) -> MeOut:
     user = await repo.get(AppUser, principal.user_id)
     if user is None:
         raise NotFound("user")
@@ -110,6 +124,9 @@ async def _me_out(repo: TenantRepository, principal: Principal) -> MeOut:
         sites = sorted(await repo.list(Site), key=lambda s: s.name)
         chosen = sites[0] if sites else None
 
+    admin = is_admin(grants)
+    scope = _administered_sites(grants) if admin else set()
+
     return MeOut(
         user_id=user.id,
         organization_id=user.organization_id,
@@ -120,12 +137,14 @@ async def _me_out(repo: TenantRepository, principal: Principal) -> MeOut:
         teams=teams,
         home_site_id=user.home_site_id,
         home_site=SiteOut.model_validate(chosen) if chosen else None,
+        is_admin=admin,
+        administered_site_ids=None if scope is None else sorted(scope, key=str),
     )
 
 
 @router.get("/me", response_model=MeOut)
-async def me(principal: Me, repo: Repo) -> MeOut:
-    return await _me_out(repo, principal)
+async def me(principal: Me, repo: Repo, grants: Grants) -> MeOut:
+    return await _me_out(repo, principal, grants)
 
 
 class HomeSiteIn(BaseModel):
@@ -133,7 +152,9 @@ class HomeSiteIn(BaseModel):
 
 
 @router.put("/me/home-site", response_model=MeOut)
-async def set_home_site(body: HomeSiteIn, principal: Me, repo: Repo, db: Db) -> MeOut:
+async def set_home_site(
+    body: HomeSiteIn, principal: Me, repo: Repo, db: Db, grants: Grants
+) -> MeOut:
     """FR-1.9 -- choose the office you usually work from.
 
     Another tenant's site id is 404, not 403 (TDD §15.1). A 403 would confirm
@@ -152,7 +173,7 @@ async def set_home_site(body: HomeSiteIn, principal: Me, repo: Repo, db: Db) -> 
 
     user.home_site_id = site.id
     await db.commit()
-    return await _me_out(repo, principal)
+    return await _me_out(repo, principal, grants)
 
 
 @router.get("/sites", response_model=list[SiteOut])
@@ -419,9 +440,28 @@ async def list_bookings(repo: Repo, principal: Me) -> list[Booking]:
 
 
 @router.delete("/bookings/{booking_id}", status_code=204)
-async def cancel_booking(booking_id: uuid.UUID, repo: Repo, db: Db) -> None:
+async def cancel_booking(
+    booking_id: uuid.UUID, repo: Repo, db: Db, principal: Me, grants: Grants
+) -> None:
+    """FR-2.12 for the person who made it, FR-8.6 for an administrator.
+
+    IT IS YOURS OR YOU ADMINISTER THE SITE. The repository scopes by
+    organization, which is not the same as by user: before this check, any
+    employee could cancel any colleague's desk by id.
+
+    Somebody else's booking is 404 rather than 403, matching the tenancy layer
+    -- a 403 would confirm that the id names a real booking, and "does
+    <this id> exist" is exactly what an employee should not be able to ask
+    about a colleague whose presence is hidden from them (FR-5.6).
+
+    Releasing goes through `release_booking` so the day's capacity counter is
+    decremented here exactly as it is for an admin override or a deactivation.
+    """
     booking = await repo.get(Booking, booking_id)
     if booking is None:
         raise NotFound("booking")
-    booking.status = "cancelled"
+    if booking.user_id != principal.user_id and not administers_site(grants, booking.site_id):
+        raise NotFound("booking")
+
+    await release_booking(db, booking)
     await db.commit()

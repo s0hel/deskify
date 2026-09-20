@@ -342,3 +342,40 @@ class AuditLog(Base):
     at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )
+
+
+class RoleGrant(Base):
+    """FR-1.8, TDD §6.6. Roles are additive grants, each scoped.
+
+    There is no role column on app_user, and no row for an ordinary employee:
+    holding no grant IS being an employee. That keeps "who can administer this
+    site" a question with one answer, rather than two that can disagree.
+
+    The scope_id/scope_type pairing is enforced by a CHECK in revision 0004 --
+    a `site_admin` row with a NULL scope would otherwise read as admin of every
+    site.
+    """
+
+    __tablename__ = "role_grant"
+    id: Mapped[uuid.UUID] = _pk()
+    organization_id: Mapped[uuid.UUID] = _org()
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("app_user.id"), nullable=False
+    )
+    role: Mapped[str] = mapped_column(Text, nullable=False)
+    scope_type: Mapped[str] = mapped_column(Text, nullable=False)
+    scope_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    granted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+    granted_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('team_lead','site_admin','org_admin')", name="role_grant_role_check"
+        ),
+        CheckConstraint("scope_type IN ('org','site','group')", name="role_grant_scope_check"),
+        CheckConstraint(
+            "(scope_type = 'org') = (scope_id IS NULL)", name="role_grant_scope_id_check"
+        ),
+        Index("role_grant_user", "organization_id", "user_id"),
+    )

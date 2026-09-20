@@ -42,8 +42,8 @@ from app.models import (
 
 TABLES = (
     "booking", "site_day_capacity", "resource", "zone", "floor",
-    "day_declaration", "group_member", "user_group", "app_user", "site",
-    "email_domain", "policy", "audit_log", "idempotency_key", "job",
+    "day_declaration", "group_member", "user_group", "role_grant", "app_user",
+    "site", "email_domain", "policy", "audit_log", "idempotency_key", "job",
     "organization",
 )
 
@@ -154,6 +154,27 @@ async def make_org(s, name="Acme", *, capacity_cap=None, tz="Europe/Berlin", des
     await s.commit()
     return {"org": org, "site": site, "floor": floor, "zone": zone,
             "desks": made, "desk": made[0], "user": user, "team": team}
+
+
+async def grant_role(s, fx, user, role: str, scope_id=None):
+    """FR-1.8. No fixture user holds a role by default, deliberately: a test
+    that needs an administrator says so, and every other test is therefore
+    asserting what an ordinary employee can do."""
+    from app.models import RoleGrant
+
+    grant = RoleGrant(
+        organization_id=fx["org"].id,
+        user_id=user.id,
+        role=role,
+        scope_type="org" if role == "org_admin" else (
+            "group" if role == "team_lead" else "site"
+        ),
+        scope_id=None if role == "org_admin" else scope_id,
+    )
+    s.add(grant)
+    await s.flush()
+    await s.commit()
+    return grant
 
 
 async def add_person(

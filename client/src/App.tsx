@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 
 import { ApiError } from "./api/client";
 import {
@@ -32,6 +32,16 @@ import { TabBar, type Tab } from "./ui/TabBar";
 import { initials } from "./ui/bits";
 
 const DEMO_EMAIL = "priya@northwind.example";
+
+/**
+ * The admin console, behind a lazy boundary (TDD §10.1) so none of it is in
+ * the employee cold-start path. It is a screen rather than a panel: it has
+ * its own tabs, forms and lists, and it replaces the app's topbar and tab bar
+ * while it is open -- the same treatment PersonScreen gets, for the same
+ * reason. Nesting it under a "Me" heading gave every form half the width it
+ * needs and two headings competing to say where you are.
+ */
+const AdminConsole = lazy(() => import("./admin/AdminConsole"));
 
 /**
  * Sign-in fails for three quite different reasons, and saying "is it running on
@@ -71,6 +81,7 @@ export default function App() {
   const [absenceOpen, setAbsenceOpen] = useState(false);
   const [officeOpen, setOfficeOpen] = useState(false);
   const [floorOpen, setFloorOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
   const [pickedFloorId, setPickedFloorId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -211,6 +222,16 @@ export default function App() {
         <div className="pad" style={{ paddingTop: 40 }}>
           <p className="meta">Signing in…</p>
         </div>
+      </main>
+    );
+  }
+
+  if (adminOpen) {
+    return (
+      <main className="app safe">
+        <Suspense fallback={<p className="pad meta">Loading console…</p>}>
+          <AdminConsole onClose={() => setAdminOpen(false)} />
+        </Suspense>
       </main>
     );
   }
@@ -396,6 +417,7 @@ export default function App() {
 
           {tab === "me" && (
             <MeScreen
+              onOpenAdmin={() => setAdminOpen(true)}
               onSignOut={() => {
                 signOut();
                 setMe(null);

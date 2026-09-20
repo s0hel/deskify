@@ -24,6 +24,7 @@ from app.models import (
     Floor,
     GroupMember,
     Resource,
+    RoleGrant,
     Site,
     UserGroup,
     Zone,
@@ -42,6 +43,7 @@ TENANT_SCOPED = (
     DayDeclaration,
     UserGroup,
     GroupMember,
+    RoleGrant,
 )
 
 
