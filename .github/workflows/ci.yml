@@ -100,6 +100,20 @@ jobs:
     # build rather than a runtime bug (TDD §5.1).
     runs-on: ubuntu-latest
     needs: [api]
+    # Importing app.main constructs Settings, which fail closed (app/config.py):
+    # with no environment set this job defaulted to prod and died on the
+    # published JWT secret before it could generate anything. It opts into dev
+    # like the api job, and like `make gen-api` does locally.
+    #
+    # Generating the CLIENT'S schema in dev is only safe because the schema
+    # does not depend on the environment: the one route mounted conditionally,
+    # /auth/dev-sign-in, is declared include_in_schema=False, so it is absent
+    # from the document either way. Mount a route that is BOTH dev-only and in
+    # the schema and this job will quietly bake it into the generated client
+    # while production does not serve it -- at which point generate from a
+    # configured prod instead (config-guard's last step shows the variables).
+    env:
+      DESKIFY_ENVIRONMENT: dev
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
