@@ -560,6 +560,10 @@ export interface components {
             name: string;
             /** Ordinal */
             ordinal: number;
+            /** Free */
+            free: number;
+            /** Total */
+            total: number;
         };
         /** GridCell */
         GridCell: {
@@ -1055,7 +1059,9 @@ export interface operations {
     };
     list_floors_sites__site_id__floors_get: {
         parameters: {
-            query?: never;
+            query?: {
+                on?: string | null;
+            };
             header?: {
                 authorization?: string | null;
             };

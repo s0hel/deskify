@@ -255,15 +255,60 @@ class FloorSummaryOut(BaseModel):
     id: uuid.UUID
     name: str
     ordinal: int
+    #: Desks free on `on`, so the picker can answer the question people
+    #: actually open it with: which floor has space? Without this the client
+    #: would need a /state call per floor to colour a list of names.
+    free: int
+    total: int
 
 
 @router.get("/sites/{site_id}/floors", response_model=list[FloorSummaryOut])
-async def list_floors(site_id: uuid.UUID, repo: Repo) -> list[Floor]:
+async def list_floors(
+    site_id: uuid.UUID, repo: Repo, on: date | None = None
+) -> list[FloorSummaryOut]:
     site = await repo.get(Site, site_id)
     if site is None:
         raise NotFound("site")
-    floors = await repo.list(Floor, Floor.site_id == site.id)
-    return sorted(floors, key=lambda f: f.ordinal)
+
+    day = on or local_today(site.timezone)
+    floors = sorted(await repo.list(Floor, Floor.site_id == site.id), key=lambda f: f.ordinal)
+
+    desks = await repo.list(
+        Resource,
+        Resource.site_id == site.id,
+        Resource.kind == "desk",
+        Resource.status == "active",
+    )
+    bookings = await repo.list(
+        Booking,
+        Booking.site_id == site.id,
+        Booking.local_date == day,
+        Booking.status.notin_(("cancelled", "released_no_show")),
+    )
+    floor_of = {d.id: d.floor_id for d in desks}
+
+    total: dict[uuid.UUID, int] = {}
+    for desk in desks:
+        if desk.floor_id is not None:
+            total[desk.floor_id] = total.get(desk.floor_id, 0) + 1
+
+    taken: dict[uuid.UUID, int] = {}
+    for booking in bookings:
+        floor_id = floor_of.get(booking.resource_id)
+        # A room booking has no desk to take, so it is not counted here.
+        if floor_id is not None:
+            taken[floor_id] = taken.get(floor_id, 0) + 1
+
+    return [
+        FloorSummaryOut(
+            id=f.id,
+            name=f.name,
+            ordinal=f.ordinal,
+            total=total.get(f.id, 0),
+            free=max(0, total.get(f.id, 0) - taken.get(f.id, 0)),
+        )
+        for f in floors
+    ]
 
 
 @router.get("/floors/{floor_id}", response_model=FloorOut)

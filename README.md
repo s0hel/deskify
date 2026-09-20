@@ -10,7 +10,7 @@ Flex workspace booking. See [docs/PRD.md](docs/PRD.md) and
 ## Quick start
 
 ```bash
-make seed     # Postgres + migrations + a demo tenant: 6 offices, 616 desks
+make seed     # Postgres + migrations + a demo tenant: 6 offices, 8 floors, 752 desks
 make plans    # redraw the floor-plan SVGs from their one definition
 make api      # API  -> http://localhost:8099  (/docs for OpenAPI)
 make web      # app  -> http://localhost:5173
@@ -182,17 +182,19 @@ cd api && uv run python -m app.plans --check   # what CI runs
 The SVGs are committed, so a clean checkout builds without running Python, and drift
 fails the build the same way a stale generated API client does.
 
-Six offices, five archetypes, because one rectangle of evenly spaced dots tells you
-nothing about whether the plan component copes:
+Six offices and eight floors across five archetypes, because one rectangle of evenly
+spaced dots tells you nothing about whether the plan component copes:
 
-| Office | Layout | Desks |
-|---|---|---|
-| Tampa | open banks of benching, rooms and core down one side | 300 |
-| Berlin Mitte | central spine, benching either side | 96 |
-| Singapore Raffles | **L-shaped plate** — two outline rects, not one | 72 |
-| London Bridge | courtyard around a **void**, rooms east and west | 60 |
-| Austin Domain | loft: mostly not desks | 48 |
-| Denver Union | loft, smaller | 40 |
+| Office | Floor | Layout | Desks |
+|---|---|---|---|
+| Tampa | 4F | open banks of benching, rooms and core down one side | 300 |
+| | 5F | central spine, benching either side | 96 |
+| Berlin Mitte | 2F | central spine | 96 |
+| | 3F | loft | 40 |
+| Singapore Raffles | 12F | **L-shaped plate** — two outline rects, not one | 72 |
+| London Bridge | 1F | courtyard around a **void**, rooms east and west | 60 |
+| Austin Domain | 1F | loft: mostly not desks | 48 |
+| Denver Union | 3F | loft, smaller | 40 |
 
 Tampa keeps the 300, so `make seed` still opens the app on the PRD §9.1 budget rather
 than on a toy.
@@ -212,6 +214,27 @@ Three things are worth knowing before changing a layout:
   that tree for nothing. The cost is that the theme has to come from inside, so the
   generated stylesheet carries its own `prefers-color-scheme` block. The app's manual
   `data-theme="light"` override cannot reach it.
+
+## Picking a floor
+
+`GET /sites/{id}/floors?on=` carries **free and total per floor**, not just names,
+because nobody opens a floor picker to admire the naming scheme — they open it to
+find out which floor has space. Computing it server-side is also what stops the
+client firing one `/state` call per floor to colour a list.
+
+Three decisions in the client are worth knowing:
+
+- **The selected floor is derived, not held in an effect.** It is the picked id *if
+  the current site still has it*, otherwise the lowest floor. Change office and the
+  picked id is simply no longer in the new list, so it falls back on its own — an
+  effect that reset it would have to race the query that replaced the list.
+- **The heading is the control.** On the plan screen the title already says which
+  floor you are on, so that is where you change it. On a single-floor site it renders
+  as plain text with no disclosure arrow: an affordance for a choice that does not
+  exist is worse than none.
+- **"Sit near" carries the floor.** It always received one and always ignored it,
+  which was invisible while every site had exactly one floor and would have quietly
+  opened the wrong storey the day one did not.
 
 ## Office photographs
 

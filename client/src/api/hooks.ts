@@ -35,6 +35,9 @@ export interface FloorSummary {
   id: string;
   name: string;
   ordinal: number;
+  /** Desks free on the day asked for. The picker exists to answer this. */
+  free: number;
+  total: number;
 }
 
 export interface ApiResource {
@@ -167,7 +170,7 @@ export const keys = {
   person: (id: string) => ["person", id] as const,
   teams: ["teams"] as const,
   teamWeek: (id: string, start: string) => ["teamWeek", id, start] as const,
-  floors: (siteId: string) => ["floors", siteId] as const,
+  floors: (siteId: string, on: string) => ["floors", siteId, on] as const,
   floor: (floorId: string) => ["floor", floorId] as const,
   floorState: (floorId: string, on: string) => ["floorState", floorId, on] as const,
 };
@@ -195,11 +198,19 @@ export function useDays(siteId: string | undefined) {
   });
 }
 
-export function useFloors(siteId: string | undefined) {
+/**
+ * The floors of a site, with how full each one is on `on`.
+ *
+ * Keyed by the day as well as the site, because the counts change with it --
+ * without the day in the key, picking Thursday would show you Monday's free
+ * numbers from cache.
+ */
+export function useFloors(siteId: string | undefined, on: string) {
   return useQuery({
-    queryKey: keys.floors(siteId ?? ""),
-    queryFn: () => api<FloorSummary[]>(`/sites/${siteId}/floors`),
-    enabled: Boolean(siteId),
+    queryKey: keys.floors(siteId ?? "", on),
+    queryFn: () => api<FloorSummary[]>(`/sites/${siteId}/floors?on=${on}`),
+    enabled: Boolean(siteId && on),
+    staleTime: 30 * 1000,
   });
 }
 

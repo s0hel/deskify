@@ -286,7 +286,8 @@ def bank_floor(
 
 
 def spine_floor(
-    key: str, site: str, name: str, ordinal: int, *, pods_per_side: int, seats: int
+    key: str, site: str, name: str, ordinal: int, *, pods_per_side: int, seats: int,
+    room_names: list[str],
 ) -> FloorPlan:
     """A central circulation spine with benching either side and the rooms
     bookending it. Narrower plate, so every desk is within a few metres of a
@@ -320,10 +321,8 @@ def spine_floor(
 
     body_bottom = margin_y + pod_h * 2 + spine_h
     rooms = meeting_strip(
-        margin_x,
-        30,
-        desk_area_w,
-        [("Bauhaus", 10, 84), ("Tiergarten", 6, 84), ("Spree", 4, 84)],
+        margin_x, 30, desk_area_w,
+        [(room_names[0], 10, 84), (room_names[1], 6, 84), (room_names[2], 4, 84)],
     )
     rooms += [
         Room("Kitchen", Rect(margin_x, body_bottom + 30, desk_area_w * 0.42, 130), kind="cafe"),
@@ -568,7 +567,10 @@ class Office:
     #: Lat/lng for the check-in geofence (FR-4.3).
     lat: float
     lng: float
-    floor: FloorPlan
+    #: In ordinal order, lowest first. An office with more than one is the
+    #: normal case, not the interesting one -- a single-floor site is the
+    #: small office, and the client hides the floor picker for it.
+    floors: list[FloorPlan]
 
     @property
     def slug(self) -> str:
@@ -588,35 +590,46 @@ def _offices() -> list[Office]:
     return [
         Office(
             "Tampa", "America/New_York", 27.9506, -82.4572,
-            # 5 banks x 6 pods x 10 seats = 300, the PRD §9.1 budget.
-            bank_floor(
-                "tampa-4f", "Tampa", "4F", 4,
-                banks=5, pods_per_bank=6, seats=5,
-                zone_of_bank=["Engineering", "Engineering", "Design", "Sales", "Quiet"],
-            ),
+            [
+                # 5 banks x 6 pods x 10 seats = 300, the PRD §9.1 budget.
+                bank_floor(
+                    "tampa-4f", "Tampa", "4F", 4,
+                    banks=5, pods_per_bank=6, seats=5,
+                    zone_of_bank=["Engineering", "Engineering", "Design", "Sales", "Quiet"],
+                ),
+                spine_floor("tampa-5f", "Tampa", "5F", 5, pods_per_side=4, seats=6,
+                            room_names=["Gasparilla", "Ybor", "Bayshore"]),
+            ],
         ),
         Office(
             "Berlin Mitte", "Europe/Berlin", 52.5200, 13.4050,
-            spine_floor("berlin-mitte-2f", "Berlin Mitte", "2F", 2, pods_per_side=4, seats=6),
+            [
+                spine_floor("berlin-mitte-2f", "Berlin Mitte", "2F", 2,
+                            pods_per_side=4, seats=6,
+                            room_names=["Bauhaus", "Tiergarten", "Spree"]),
+                loft_floor("berlin-mitte-3f", "Berlin Mitte", "3F", 3, seats=5, pods=4,
+                           room_names=["Reichstag", "Kreuzberg"], zone_name="Design"),
+            ],
         ),
         Office(
             "London Bridge", "Europe/London", 51.5045, -0.0865,
-            courtyard_floor("london-bridge-1f", "London Bridge", "1F", 1, seats=5, per_row=3),
+            [courtyard_floor("london-bridge-1f", "London Bridge", "1F", 1,
+                             seats=5, per_row=3)],
         ),
         Office(
             "Singapore Raffles", "Asia/Singapore", 1.2830, 103.8513,
-            wings_floor("singapore-raffles-12f", "Singapore Raffles", "12F", 12,
-                        seats=6, wing_pods=4, stub_pods=2),
+            [wings_floor("singapore-raffles-12f", "Singapore Raffles", "12F", 12,
+                         seats=6, wing_pods=4, stub_pods=2)],
         ),
         Office(
             "Austin Domain", "America/Chicago", 30.4013, -97.7250,
-            loft_floor("austin-domain-1f", "Austin Domain", "1F", 1, seats=6, pods=4,
-                       room_names=["Barton", "Congress"], zone_name="Everyone"),
+            [loft_floor("austin-domain-1f", "Austin Domain", "1F", 1, seats=6, pods=4,
+                        room_names=["Barton", "Congress"], zone_name="Everyone")],
         ),
         Office(
             "Denver Union", "America/Denver", 39.7527, -105.0000,
-            loft_floor("denver-union-3f", "Denver Union", "3F", 3, seats=5, pods=4,
-                       room_names=["Front Range", "Platte"], zone_name="Everyone"),
+            [loft_floor("denver-union-3f", "Denver Union", "3F", 3, seats=5, pods=4,
+                        room_names=["Front Range", "Platte"], zone_name="Everyone")],
         ),
     ]
 
@@ -625,3 +638,6 @@ def _offices() -> list[Office]:
 OFFICES: list[Office] = _offices()
 
 OFFICE_BY_NAME: dict[str, Office] = {o.name: o for o in OFFICES}
+
+#: Every floor in the tenant, flattened. What renders and what gets tested.
+ALL_FLOORS: list[FloorPlan] = [floor for office in OFFICES for floor in office.floors]

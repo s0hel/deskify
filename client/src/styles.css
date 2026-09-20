@@ -701,3 +701,18 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 .hero__win { fill: color-mix(in srgb, var(--ink) 28%, transparent); }
 .hero__win--lit { fill: color-mix(in srgb, var(--clay) 72%, var(--surface)); }
+
+/* A heading that is also the control for changing what it names -- the floor
+   on the plan screen. Aligned to the heading's baseline, not boxed, so it
+   still reads as the title of the screen rather than as a button on it. */
+.heading-pick {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+}
+.heading-pick svg { color: var(--accent); flex: none; }

@@ -21,7 +21,7 @@ from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import Range
 
 from app.db import SessionLocal
-from app.floorplans import OFFICES, Office
+from app.floorplans import OFFICES
 from app.models import (
     AppUser,
     Booking,
@@ -85,6 +85,10 @@ BOOKINGS = [
     ("kofi", 3, "Singapore Raffles", "12F-A-11"),
     ("elena", 2, "Austin Domain", "1F-A-05"),
     ("tomas", 2, "Denver Union", "3F-A-09"),
+    # Upstairs. Tampa has two floors, so the plan has to be able to land on
+    # the one a booking is actually on rather than on whichever comes first.
+    ("nadia", 3, "Tampa", "5F-N-06"),
+    ("dana", 3, "Berlin Mitte", "3F-A-02"),
 ]
 
 DECLARATIONS = [
@@ -112,10 +116,9 @@ async def _desks(s, org_id):
     ).scalars().all()
 
 
-async def _fit_out(s, org_id, site: Site, office: Office) -> Floor:
+async def _fit_out(s, org_id, site: Site, layout) -> Floor:
     """Turn one `floorplans.FloorPlan` into rows: the floor, its zones, and a
     resource per desk and per bookable room."""
-    layout = office.floor
     floor = Floor(
         organization_id=org_id, site_id=site.id, name=layout.name, ordinal=layout.ordinal,
         plan_width=layout.width, plan_height=layout.height,
@@ -185,7 +188,8 @@ async def seed() -> None:
             s.add(site)
             await s.flush()
             sites[office.name] = site
-            await _fit_out(s, org.id, site, office)
+            for layout in office.floors:
+                await _fit_out(s, org.id, site, layout)
 
         groups: dict[str, UserGroup] = {}
         users: dict[str, AppUser] = {}
@@ -250,10 +254,12 @@ async def seed() -> None:
 
         print(f"seeded org={org.id}")
         for office in OFFICES:
-            layout = office.floor
-            print(f"       {office.name:<20} {office.timezone:<18} "
-                  f"{layout.name:>4} {layout.width}x{layout.height} "
-                  f"{layout.desk_count:>3} desks  /plans/{layout.key}.svg")
+            for i, layout in enumerate(office.floors):
+                label = office.name if i == 0 else ""
+                tz = office.timezone if i == 0 else ""
+                print(f"       {label:<20} {tz:<18} "
+                      f"{layout.name:>4} {layout.width}x{layout.height} "
+                      f"{layout.desk_count:>3} desks  /plans/{layout.key}.svg")
         print(f"       {len(PEOPLE)} people in {len(groups)} teams, "
               f"{len(BOOKINGS)} bookings, {len(DECLARATIONS)} declarations")
         print("       sign in as priya@northwind.example -- home office Tampa")

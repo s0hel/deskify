@@ -157,3 +157,65 @@ async def test_a_home_site_that_has_since_gone_falls_back(db, client):
 
     assert body["home_site_id"] == str(tampa.id)  # still what the row says
     assert body["home_site"]["name"] == "Northwind HQ"  # but not what we show
+
+
+async def test_floors_report_availability_for_the_day_asked_about(db, client):
+    """The floor picker's whole job is answering "which floor has space?", so
+    the list endpoint carries free/total rather than making the client fetch
+    a /state per floor."""
+    from datetime import date
+
+    from sqlalchemy.dialects.postgresql import Range
+
+    from app.models import Booking, Floor, Resource
+    from tests.conftest import berlin
+
+    fx = await make_org(db, "Northwind", desks=3)
+
+    upstairs = Floor(
+        organization_id=fx["org"].id, site_id=fx["site"].id, name="5F", ordinal=5,
+        plan_width=900, plan_height=600,
+    )
+    db.add(upstairs)
+    await db.flush()
+    db.add(Resource(
+        organization_id=fx["org"].id, site_id=fx["site"].id, floor_id=upstairs.id,
+        kind="desk", name="5F-A-01", plan_x=100, plan_y=100,
+    ))
+    await db.flush()
+
+    on = date(2026, 10, 2)
+    db.add(Booking(
+        organization_id=fx["org"].id, site_id=fx["site"].id,
+        resource_id=fx["desks"][0].id, user_id=fx["user"].id,
+        during=Range(berlin(2026, 10, 2, 9), berlin(2026, 10, 2, 17), bounds="[)"),
+        local_date=on, status="confirmed", created_by=fx["user"].id,
+    ))
+    await db.commit()
+
+    async with client as c:
+        rows = (await c.get(
+            f"/sites/{fx['site'].id}/floors",
+            params={"on": on.isoformat()},
+            headers=auth_for(fx),
+        )).json()
+
+    # Lowest ordinal first: the picker lists them in this order.
+    assert [r["name"] for r in rows] == ["4F", "5F"]
+    assert (rows[0]["free"], rows[0]["total"]) == (2, 3)
+    assert (rows[1]["free"], rows[1]["total"]) == (1, 1)
+
+
+async def test_a_day_with_no_bookings_shows_every_desk_free(db, client):
+    from datetime import date
+
+    fx = await make_org(db, "Northwind", desks=4)
+
+    async with client as c:
+        rows = (await c.get(
+            f"/sites/{fx['site'].id}/floors",
+            params={"on": date(2026, 10, 3).isoformat()},
+            headers=auth_for(fx),
+        )).json()
+
+    assert (rows[0]["free"], rows[0]["total"]) == (4, 4)

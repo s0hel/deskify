@@ -28,7 +28,7 @@ import sys
 from pathlib import Path
 from xml.sax.saxutils import escape
 
-from app.floorplans import OFFICES, FloorPlan, Rect
+from app.floorplans import ALL_FLOORS, FloorPlan, Rect
 
 OUT_DIR = Path(__file__).resolve().parents[2] / "client" / "public" / "plans"
 
@@ -147,9 +147,9 @@ def render(plan: FloorPlan) -> str:
 def write_all(out_dir: Path = OUT_DIR) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     written = []
-    for office in OFFICES:
-        path = out_dir / f"{office.floor.key}.svg"
-        path.write_text(render(office.floor))
+    for floor in ALL_FLOORS:
+        path = out_dir / f"{floor.key}.svg"
+        path.write_text(render(floor))
         written.append(path)
     return written
 
@@ -157,9 +157,9 @@ def write_all(out_dir: Path = OUT_DIR) -> list[Path]:
 def main() -> None:
     check = "--check" in sys.argv
     stale = []
-    for office in OFFICES:
-        path = OUT_DIR / f"{office.floor.key}.svg"
-        want = render(office.floor)
+    for floor in ALL_FLOORS:
+        path = OUT_DIR / f"{floor.key}.svg"
+        want = render(floor)
         if check:
             if not path.exists() or path.read_text() != want:
                 stale.append(path.name)
@@ -167,14 +167,13 @@ def main() -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(want)
         print(f"  {path.relative_to(OUT_DIR.parents[2])}  "
-              f"{office.floor.width}x{office.floor.height}  "
-              f"{office.floor.desk_count} desks")
+              f"{floor.width}x{floor.height}  {floor.desk_count} desks")
 
     if check and stale:
         print("stale plan SVGs, run `make plans`: " + ", ".join(stale), file=sys.stderr)
         raise SystemExit(1)
     if check:
-        print(f"{len(OFFICES)} plan SVGs up to date")
+        print(f"{len(ALL_FLOORS)} plan SVGs up to date")
 
 
 if __name__ == "__main__":

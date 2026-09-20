@@ -23,6 +23,7 @@ import { planUrl } from "./booking/photos";
 import { dayName, longLabel, siteToday, weekdayLabel } from "./booking/dates";
 import { DeskList } from "./floorplan/DeskList";
 import { FloorPlan, type Desk, type DeskState } from "./floorplan/FloorPlan";
+import { FloorSheet } from "./floorplan/FloorSheet";
 import { HomeSiteSheet } from "./people/HomeSiteSheet";
 import { MeScreen } from "./people/MeScreen";
 import { PersonScreen } from "./people/PersonScreen";
@@ -69,6 +70,8 @@ export default function App() {
   const [focusResourceId, setFocusResourceId] = useState<string | null>(null);
   const [absenceOpen, setAbsenceOpen] = useState(false);
   const [officeOpen, setOfficeOpen] = useState(false);
+  const [floorOpen, setFloorOpen] = useState(false);
+  const [pickedFloorId, setPickedFloorId] = useState<string | null>(null);
 
   useEffect(() => {
     signIn(DEMO_EMAIL)
@@ -83,13 +86,24 @@ export default function App() {
   const profile = useMe(signedIn);
   const site = profile.data?.home_site ?? undefined;
   const days = useDays(site?.id);
-  const floors = useFloors(site?.id);
-  const floorId = floors.data?.[0]?.id;
-  const floor = useFloor(floorId);
 
   const todayIso = site ? siteToday(site.timezone) : "";
   const [day, setDay] = useState<string | null>(null);
   const on = day ?? todayIso;
+
+  const floors = useFloors(site?.id, on);
+  /**
+   * The picked floor, or the lowest one. Derived rather than held in an
+   * effect: when the office changes, the picked id is simply no longer in
+   * the new site's list, so this falls back on its own. An effect that reset
+   * it would have to race the query that replaced the list.
+   */
+  const floorId =
+    pickedFloorId && floors.data?.some((f) => f.id === pickedFloorId)
+      ? pickedFloorId
+      : floors.data?.[0]?.id;
+  const floor = useFloor(floorId);
+  const manyFloors = (floors.data?.length ?? 0) > 1;
 
   const state = useFloorState(floorId, on);
   const book = useCreateBooking();
@@ -140,9 +154,14 @@ export default function App() {
   }
 
   /** From a colleague's schedule: go to the plan for that day, centred on
-   *  their desk. The disclosure is the same one their schedule already made. */
-  function sitNear(dayIso: string, resourceId: string, _floorId: string) {
+   *  their desk. The disclosure is the same one their schedule already made.
+   *
+   *  The floor matters now that a site can have several. Without this the
+   *  plan would open on the lowest floor and silently fail to find a desk
+   *  that is two storeys up. */
+  function sitNear(dayIso: string, resourceId: string, theirFloorId: string) {
     setDay(dayIso);
+    setPickedFloorId(theirFloorId);
     setFocusResourceId(resourceId);
     setPersonId(null);
     setMode("plan");
@@ -218,9 +237,28 @@ export default function App() {
                 <span className="eyebrow">
                   {weekdayLabel(on).split(" ")[0]} · {site?.name}
                 </span>
-                <h1 className="title" style={{ marginTop: 2 }}>
-                  {heading}
-                </h1>
+                {/* On the plan the heading IS the floor name, so it is also
+                    where you change it -- but only when there is a choice.
+                    A disclosure arrow on a one-floor site promises a
+                    decision that does not exist. */}
+                {tab === "spaces" && manyFloors ? (
+                  <button className="heading-pick" onClick={() => setFloorOpen(true)}>
+                    <h1 className="title">{heading}</h1>
+                    <svg
+                      width="18" height="18" viewBox="0 0 24 24" fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2"
+                        strokeLinecap="round" strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                ) : (
+                  <h1 className="title" style={{ marginTop: 2 }}>
+                    {heading}
+                  </h1>
+                )}
               </>
             )
           )}
@@ -394,6 +432,19 @@ export default function App() {
             declare.mutate({ on, kind: null }, { onSuccess: () => setAbsenceOpen(false) })
           }
           onClose={() => setAbsenceOpen(false)}
+        />
+      )}
+
+      {floorOpen && floors.data && (
+        <FloorSheet
+          floors={floors.data}
+          currentId={floorId}
+          dayLabel={on === todayIso ? "today" : longLabel(on)}
+          onPick={(id) => {
+            setPickedFloorId(id);
+            setFocusResourceId(null);
+          }}
+          onClose={() => setFloorOpen(false)}
         />
       )}
 

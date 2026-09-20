@@ -10,10 +10,10 @@ import math
 
 import pytest
 
-from app.floorplans import DESK_R, OFFICES, ROOM_R, FloorPlan, slugify
+from app.floorplans import ALL_FLOORS, DESK_R, OFFICES, ROOM_R, FloorPlan, slugify
 from app.plans import OUT_DIR, render
 
-ALL = [office.floor for office in OFFICES]
+ALL = ALL_FLOORS
 IDS = [floor.key for floor in ALL]
 
 
@@ -122,14 +122,26 @@ def test_slugify_matches_the_clients_rule():
 
 
 def test_the_offices_are_distinct_and_named_for_their_files():
-    keys = [office.floor.key for office in OFFICES]
+    keys = [floor.key for floor in ALL_FLOORS]
     assert len(keys) == len(set(keys))
     for office in OFFICES:
-        assert office.floor.key.startswith(office.slug), office.floor.key
+        for floor in office.floors:
+            assert floor.key.startswith(office.slug), floor.key
+
+
+def test_floors_are_ordered_and_uniquely_named_within_an_office():
+    """The picker lists them in this order and identifies them by name, so a
+    repeated name or a repeated ordinal makes two floors indistinguishable."""
+    for office in OFFICES:
+        ordinals = [f.ordinal for f in office.floors]
+        assert ordinals == sorted(ordinals), f"{office.name}: floors out of order"
+        assert len(set(ordinals)) == len(ordinals), f"{office.name}: duplicate ordinal"
+        names = [f.name for f in office.floors]
+        assert len(set(names)) == len(names), f"{office.name}: duplicate floor name"
 
 
 def test_tampa_still_carries_the_performance_budget():
     """PRD §9.1 sets 300 desks as the floor-plan budget and TDD §9.3 makes the
     seeded floor the fixture. Shrinking it would quietly retire risk R8."""
     tampa = next(o for o in OFFICES if o.name == "Tampa")
-    assert tampa.floor.desk_count == 300
+    assert tampa.floors[0].desk_count == 300
