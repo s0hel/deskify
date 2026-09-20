@@ -22,7 +22,7 @@ from app.config import (
 
 REAL_SECRET = "K" * MIN_JWT_SECRET_LENGTH
 REAL_DB_PASSWORD = "P" * MIN_DB_PASSWORD_LENGTH
-REAL_DB_URL = f"postgresql+asyncpg://svc_deskflow:{REAL_DB_PASSWORD}@db.invalid:5432/deskflow"
+REAL_DB_URL = f"postgresql+asyncpg://svc_deskify:{REAL_DB_PASSWORD}@db.invalid:5432/deskify"
 
 
 def prod(**over) -> dict:
@@ -101,31 +101,31 @@ def test_refuses_the_source_default_database_url(env):
 
 def test_refuses_a_url_with_no_password():
     with pytest.raises(ValidationError, match="no password"):
-        Settings(**prod(database_url="postgresql+asyncpg://svc@db.invalid/deskflow"))
+        Settings(**prod(database_url="postgresql+asyncpg://svc@db.invalid/deskify"))
 
 
 def test_refuses_password_equal_to_username():
-    """The deskflow:deskflow shape, renamed."""
+    """The deskify:deskify shape, renamed."""
     with pytest.raises(ValidationError, match="username as the password"):
-        Settings(**prod(database_url="postgresql+asyncpg://acme:acme@db.invalid/deskflow"))
+        Settings(**prod(database_url="postgresql+asyncpg://acme:acme@db.invalid/deskify"))
 
 
 @pytest.mark.parametrize("weak", sorted(WEAK_DB_PASSWORDS))
 def test_refuses_well_known_placeholder_passwords(weak):
     with pytest.raises(ValidationError, match="placeholder password"):
-        Settings(**prod(database_url=f"postgresql+asyncpg://svc:{weak}@db.invalid/deskflow"))
+        Settings(**prod(database_url=f"postgresql+asyncpg://svc:{weak}@db.invalid/deskify"))
 
 
 def test_placeholder_check_ignores_case():
     with pytest.raises(ValidationError, match="placeholder password"):
-        Settings(**prod(database_url="postgresql+asyncpg://svc:ChangeMe@db.invalid/deskflow"))
+        Settings(**prod(database_url="postgresql+asyncpg://svc:ChangeMe@db.invalid/deskify"))
 
 
 def test_refuses_a_short_password():
     short = "a1B2c3D4"
     assert len(short) < MIN_DB_PASSWORD_LENGTH
     with pytest.raises(ValidationError, match="characters"):
-        Settings(**prod(database_url=f"postgresql+asyncpg://svc:{short}@db.invalid/deskflow"))
+        Settings(**prod(database_url=f"postgresql+asyncpg://svc:{short}@db.invalid/deskify"))
 
 
 def test_boundary_length_password_is_accepted():
@@ -135,7 +135,7 @@ def test_boundary_length_password_is_accepted():
 def test_one_character_below_the_floor_is_refused():
     pw = "P" * (MIN_DB_PASSWORD_LENGTH - 1)
     with pytest.raises(ValidationError, match="characters"):
-        Settings(**prod(database_url=f"postgresql+asyncpg://svc:{pw}@db.invalid/deskflow"))
+        Settings(**prod(database_url=f"postgresql+asyncpg://svc:{pw}@db.invalid/deskify"))
 
 
 def test_refuses_an_unparseable_url():
@@ -146,7 +146,7 @@ def test_refuses_an_unparseable_url():
 def test_dev_may_use_the_default_database_url():
     """Otherwise every contributor needs real credentials to run the suite.
 
-    Passed explicitly because conftest points DESKFLOW_DATABASE_URL at the
+    Passed explicitly because conftest points DESKIFY_DATABASE_URL at the
     separate test database -- the property under test is that dev ACCEPTS the
     published default, not what happens to be in the environment."""
     assert (
@@ -158,7 +158,7 @@ def test_dev_may_use_the_default_database_url():
 def test_localhost_is_not_itself_rejected():
     """A socket or sidecar in production is legitimate. The guard is about
     credentials, not topology -- it must not become a host allowlist."""
-    url = f"postgresql+asyncpg://svc:{REAL_DB_PASSWORD}@localhost:5432/deskflow"
+    url = f"postgresql+asyncpg://svc:{REAL_DB_PASSWORD}@localhost:5432/deskify"
     assert Settings(**prod(database_url=url)).database_url == url
 
 
@@ -170,9 +170,9 @@ def test_localhost_is_not_itself_rejected():
 @pytest.mark.parametrize(
     "bad_url",
     [
-        "postgresql+asyncpg://svc:sh0rt@db.invalid/deskflow",
-        "postgresql+asyncpg://svc:ChangeMe@db.invalid/deskflow",
-        "postgresql+asyncpg://acme:acme@db.invalid/deskflow",
+        "postgresql+asyncpg://svc:sh0rt@db.invalid/deskify",
+        "postgresql+asyncpg://svc:ChangeMe@db.invalid/deskify",
+        "postgresql+asyncpg://acme:acme@db.invalid/deskify",
         "this is not a url",
     ],
 )
@@ -240,3 +240,101 @@ def test_managed_database_gets_tls_and_no_statement_cache():
 
 def test_local_dev_keeps_prepared_statements_and_plaintext():
     assert Settings(environment="dev").db_connect_args == {}
+
+
+# ---------------------------------------------------------------------------
+# The DESKFLOW_ -> DESKIFY_ prefix migration (app/config.py).
+#
+# These run in a SUBPROCESS because the shim rewrites os.environ at IMPORT time;
+# in-process it has already run against this session's environment.
+#
+# Delete this block together with the shim, once no deployment sets DESKFLOW_*.
+# ---------------------------------------------------------------------------
+
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+_API_DIR = Path(__file__).resolve().parents[1]
+_PROBE = (
+    "from app.config import settings; import json; "
+    "print(json.dumps({'environment': settings.environment, "
+    "'jwt_len': len(settings.jwt_secret)}))"
+)
+_LEGACY_DB_URL = f"postgresql+asyncpg://svc:{REAL_DB_PASSWORD}@db.invalid:5432/d"
+
+
+def _boot(env: dict[str, str]) -> dict:
+    """Start a fresh interpreter with ONLY the given DESK* variables set."""
+    clean = {k: v for k, v in os.environ.items() if not k.startswith(("DESKIFY_", "DESKFLOW_"))}
+    result = subprocess.run(
+        [sys.executable, "-c", _PROBE],
+        cwd=_API_DIR,
+        env={**clean, "PYTHONPATH": str(_API_DIR), **env},
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr[-800:]
+    return json.loads(result.stdout.strip().splitlines()[-1])
+
+
+def test_a_deployment_still_on_the_legacy_prefix_boots():
+    """The reason the shim exists. Variables live in a dashboard, not in this
+    repo, so renaming the prefix here must not take production down until
+    someone re-types them."""
+    body = _boot(
+        {
+            "DESKFLOW_ENVIRONMENT": "prod",
+            "DESKFLOW_JWT_SECRET": REAL_SECRET,
+            "DESKFLOW_DATABASE_URL": _LEGACY_DB_URL,
+        }
+    )
+    assert body == {"environment": "prod", "jwt_len": len(REAL_SECRET)}
+
+
+def test_the_new_prefix_wins_when_both_are_set():
+    """So the migration can go one variable at a time instead of all at once."""
+    body = _boot(
+        {
+            "DESKFLOW_ENVIRONMENT": "prod",
+            "DESKFLOW_JWT_SECRET": "S" * 60,
+            "DESKIFY_ENVIRONMENT": "staging",
+            "DESKIFY_JWT_SECRET": REAL_SECRET,
+            "DESKIFY_DATABASE_URL": _LEGACY_DB_URL,
+        }
+    )
+    assert body["environment"] == "staging"
+    assert body["jwt_len"] == len(REAL_SECRET)
+
+
+def test_the_legacy_prefix_does_not_reopen_the_dev_default():
+    """A legacy name must still go through every guard -- the shim moves values,
+    it does not exempt them."""
+    clean = {k: v for k, v in os.environ.items() if not k.startswith(("DESKIFY_", "DESKFLOW_"))}
+    result = subprocess.run(
+        [sys.executable, "-c", _PROBE],
+        cwd=_API_DIR,
+        env={
+            **clean,
+            "PYTHONPATH": str(_API_DIR),
+            "DESKFLOW_ENVIRONMENT": "prod",
+            "DESKFLOW_JWT_SECRET": DEV_JWT_SECRET,
+            "DESKFLOW_DATABASE_URL": _LEGACY_DB_URL,
+        },
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert result.returncode != 0, "booted in prod with the published dev signing key"
+    assert "development default" in result.stderr
+
+
+def test_both_old_and_new_names_are_refused_as_database_passwords():
+    """Renaming the product must not retire the old weak password."""
+    assert "deskflow" in WEAK_DB_PASSWORDS
+    assert "deskify" in WEAK_DB_PASSWORDS

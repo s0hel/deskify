@@ -1,6 +1,6 @@
 # Product Requirements Document — Flex Workspace Booking
 
-**Product codename:** `deskflow` (placeholder)
+**Product codename:** `deskify` (placeholder)
 **Status:** Draft v0.2
 **Owner:** TBD
 **Last updated:** 2026-09-18 (stack decision revised — see §8)

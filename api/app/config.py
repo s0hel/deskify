@@ -6,7 +6,7 @@ given only an email address. All three are safe in dev and catastrophic in
 production.
 
 So `environment` defaults to **prod**, not dev. An operator who forgets to set
-DESKFLOW_ENVIRONMENT gets the locked-down behaviour and a startup failure, not a
+DESKIFY_ENVIRONMENT gets the locked-down behaviour and a startup failure, not a
 silent auth bypass. Running in dev is an explicit opt-in, which the dev tooling
 does (see the Makefile and .env.example).
 
@@ -16,6 +16,7 @@ rejected has leaked it somewhere worse than the config file.
 """
 
 import json
+import os
 from typing import Literal
 
 from pydantic import model_validator
@@ -25,7 +26,30 @@ from sqlalchemy.exc import ArgumentError
 
 #: The values shipped in source. Present so the guards can recognise them.
 DEV_JWT_SECRET = "dev-only-not-a-real-secret"
-DEV_DATABASE_URL = "postgresql+asyncpg://deskflow:deskflow@localhost:55432/deskflow"
+DEV_DATABASE_URL = "postgresql+asyncpg://deskify:deskify@localhost:55432/deskify"
+
+#: ---------------------------------------------------------------------------
+#: Transitional: the prefix was DESKFLOW_ until the product was named Deskify.
+#:
+#: A deployment keeps its variables in a dashboard, not in this repository, so
+#: flipping the prefix here alone would break every environment until someone
+#: re-typed them by hand -- and this file fails CLOSED, so the API would refuse
+#: to boot rather than quietly degrade. Reading the legacy name when the new one
+#: is absent turns a coordinated cutover into a deploy-now, migrate-later.
+#:
+#: `setdefault`, so DESKIFY_ always wins where both are set and the migration is
+#: one variable at a time rather than all at once.
+#:
+#: DELETE THIS once `vercel env ls` on both projects shows no DESKFLOW_ names.
+#: Until then a deployment can be running on either, which is the point.
+#: ---------------------------------------------------------------------------
+_LEGACY_ENV_PREFIX = "DESKFLOW_"
+_ENV_PREFIX = "DESKIFY_"
+
+for _key, _value in list(os.environ.items()):
+    if _key.startswith(_LEGACY_ENV_PREFIX):
+        os.environ.setdefault(_ENV_PREFIX + _key[len(_LEGACY_ENV_PREFIX):], _value)
+
 
 #: HS256 keys shorter than this are weak. A guard that only rejected the exact
 #: default above would be defeated by someone typing "changeme".
@@ -37,14 +61,14 @@ MIN_DB_PASSWORD_LENGTH = 16
 #: Passwords that are technically "changed" but no better than the default.
 WEAK_DB_PASSWORDS = frozenset(
     {
-        "deskflow", "postgres", "password", "passwd", "changeme", "change_me",
+        "deskflow", "deskify", "postgres", "password", "passwd", "changeme", "change_me",
         "admin", "root", "secret", "test", "dev", "letmein", "database",
     }
 )
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="DESKFLOW_", env_file=".env")
+    model_config = SettingsConfigDict(env_prefix=_ENV_PREFIX, env_file=".env")
 
     database_url: str = DEV_DATABASE_URL
     jwt_secret: str = DEV_JWT_SECRET
@@ -135,15 +159,15 @@ class Settings(BaseSettings):
 
         if self.jwt_secret == DEV_JWT_SECRET:
             raise ValueError(
-                f"DESKFLOW_JWT_SECRET is still the development default while "
-                f"DESKFLOW_ENVIRONMENT={self.environment!r}. That key is published in "
+                f"DESKIFY_JWT_SECRET is still the development default while "
+                f"DESKIFY_ENVIRONMENT={self.environment!r}. That key is published in "
                 f"this repository's source, so anyone could mint valid tokens. "
                 f"Set a real secret, e.g. `openssl rand -base64 48`."
             )
 
         if len(self.jwt_secret) < MIN_JWT_SECRET_LENGTH:
             raise ValueError(
-                f"DESKFLOW_JWT_SECRET is {len(self.jwt_secret)} characters; "
+                f"DESKIFY_JWT_SECRET is {len(self.jwt_secret)} characters; "
                 f"at least {MIN_JWT_SECRET_LENGTH} are required outside dev. "
                 f"Generate one with `openssl rand -base64 48`."
             )
@@ -160,8 +184,8 @@ class Settings(BaseSettings):
 
         if self.database_url == DEV_DATABASE_URL:
             raise ValueError(
-                f"DESKFLOW_DATABASE_URL is still the development default while "
-                f"DESKFLOW_ENVIRONMENT={env!r}. Those credentials are published in this "
+                f"DESKIFY_DATABASE_URL is still the development default while "
+                f"DESKIFY_ENVIRONMENT={env!r}. Those credentials are published in this "
                 f"repository's source. Point it at the real database. {hint}"
             )
 
@@ -170,31 +194,31 @@ class Settings(BaseSettings):
         except ArgumentError:
             # The raised message may contain the URL, so it is not chained in.
             raise ValueError(
-                "DESKFLOW_DATABASE_URL could not be parsed as a database URL."
+                "DESKIFY_DATABASE_URL could not be parsed as a database URL."
             ) from None
 
         # Everything below reports only the SHAPE of the problem, never the value.
         if not url.password:
             raise ValueError(
-                f"DESKFLOW_DATABASE_URL has no password while "
-                f"DESKFLOW_ENVIRONMENT={env!r}. {hint}"
+                f"DESKIFY_DATABASE_URL has no password while "
+                f"DESKIFY_ENVIRONMENT={env!r}. {hint}"
             )
 
         if url.password == url.username:
             raise ValueError(
-                f"DESKFLOW_DATABASE_URL uses the username as the password while "
-                f"DESKFLOW_ENVIRONMENT={env!r}. {hint}"
+                f"DESKIFY_DATABASE_URL uses the username as the password while "
+                f"DESKIFY_ENVIRONMENT={env!r}. {hint}"
             )
 
         if url.password.lower() in WEAK_DB_PASSWORDS:
             raise ValueError(
-                f"DESKFLOW_DATABASE_URL uses a well-known placeholder password while "
-                f"DESKFLOW_ENVIRONMENT={env!r}. {hint}"
+                f"DESKIFY_DATABASE_URL uses a well-known placeholder password while "
+                f"DESKIFY_ENVIRONMENT={env!r}. {hint}"
             )
 
         if len(url.password) < MIN_DB_PASSWORD_LENGTH:
             raise ValueError(
-                f"The DESKFLOW_DATABASE_URL password is {len(url.password)} characters; "
+                f"The DESKIFY_DATABASE_URL password is {len(url.password)} characters; "
                 f"at least {MIN_DB_PASSWORD_LENGTH} are required outside dev. {hint}"
             )
 
@@ -210,8 +234,8 @@ class Settings(BaseSettings):
 
         if "*" in self.cors_origin_list:
             raise ValueError(
-                f"DESKFLOW_CORS_ORIGINS contains '*' while "
-                f"DESKFLOW_ENVIRONMENT={self.environment!r}. List the exact origins "
+                f"DESKIFY_CORS_ORIGINS contains '*' while "
+                f"DESKIFY_ENVIRONMENT={self.environment!r}. List the exact origins "
                 f"the client is served from."
             )
 

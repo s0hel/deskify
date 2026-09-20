@@ -1,4 +1,4 @@
-# deskflow — Phase 0 skeleton
+# deskify — Phase 0 skeleton
 
 Flex workspace booking. See [docs/PRD.md](docs/PRD.md) and
 [docs/TECHNICAL_DESIGN.md](docs/TECHNICAL_DESIGN.md).
@@ -20,7 +20,7 @@ The app signs in as `priya@northwind.example` automatically in dev, loads the se
 Berlin site, and books against the real API. Tapping a free desk books it; tapping your
 own booking cancels it. Both the plan and the list do this.
 
-Tests run against a **separate** `deskflow_test` database, created and migrated on first
+Tests run against a **separate** `deskify_test` database, created and migrated on first
 run, so `make test` never empties the tenant a running app is showing you.
 
 ---
@@ -66,11 +66,11 @@ curl https://deskify-api-pi.vercel.app/health
 
 **Sign-in on this deployment is the development one.** Real OIDC needs Google or Entra
 credentials (T6) and the magic-link fallback is unbuilt, so the deployment runs with
-`DESKFLOW_ALLOW_DEV_SIGN_IN=true`: `/auth/dev-sign-in` issues a valid token for any seeded
+`DESKIFY_ALLOW_DEV_SIGN_IN=true`: `/auth/dev-sign-in` issues a valid token for any seeded
 email with no credential. That is a deliberate choice for a demo carrying invented data,
 and it is one variable to unset before real names go in.
 
-Use the dedicated switch, never `DESKFLOW_ENVIRONMENT=dev`. The environment also selects
+Use the dedicated switch, never `DESKIFY_ENVIRONMENT=dev`. The environment also selects
 the database connection options — dev drops `ssl="require"` and re-enables asyncpg's
 statement cache, which breaks the managed pooler. The narrow switch does one thing, and
 `test_the_switch_does_not_relax_the_database_settings` holds that line.
@@ -86,13 +86,35 @@ cd api && env $(grep -v '^#' .env.prod | xargs) uv run alembic upgrade head
 
 ## Configuration fails closed
 
-`DESKFLOW_ENVIRONMENT` defaults to **`prod`**, not dev. Three things depend on it — the
+> **Renaming in progress: `DESKFLOW_` → `DESKIFY_`.** The code reads the new prefix and
+> falls back to the old one per variable (`api/app/config.py`), because a deployment keeps
+> its variables in a dashboard rather than in this repository — and this file fails closed,
+> so a hard cutover would make the API *refuse to boot* rather than degrade. Production is
+> still on the legacy names and is healthy.
+>
+> To finish it, on **both** Vercel projects:
+>
+> ```bash
+> vercel env ls                       # what is still DESKFLOW_*
+> vercel env add DESKIFY_ENVIRONMENT production
+> vercel env rm  DESKFLOW_ENVIRONMENT production
+> ```
+>
+> Repeat per variable; `DESKIFY_` wins wherever both are set, so this can go one at a time.
+> When `vercel env ls` shows no `DESKFLOW_` names, delete the shim in `config.py` and the
+> block of tests marked for deletion in `tests/test_config_guard.py`.
+>
+> `"deskflow"` stays in `WEAK_DB_PASSWORDS` permanently — it is the published dev password
+> in this repo's history, and renaming the product does not make it safe.
+
+
+`DESKIFY_ENVIRONMENT` defaults to **`prod`**, not dev. Three things depend on it — the
 JWT signing key, the database credentials, and `/auth/dev-sign-in`, which mints a token
 for any user from an email alone. A forgotten variable must not hand out a published
 signing key, a published database password, and a live auth bypass, so dev is an
 explicit opt-in:
 
-- the `make` targets export `DESKFLOW_ENVIRONMENT=dev`
+- the `make` targets export `DESKIFY_ENVIRONMENT=dev`
 - CI sets it for the test jobs
 - `tests/conftest.py` sets it before anything imports `app.config`
 
@@ -100,8 +122,8 @@ Outside dev the API **refuses to start** if:
 
 | Setting | Refused when |
 |---|---|
-| `DESKFLOW_JWT_SECRET` | it is the default in this repo, or under 32 characters |
-| `DESKFLOW_DATABASE_URL` | it is the default in this repo, has no password, uses the username as the password, uses a placeholder (`changeme`, `postgres`, …), or the password is under 16 characters |
+| `DESKIFY_JWT_SECRET` | it is the default in this repo, or under 32 characters |
+| `DESKIFY_DATABASE_URL` | it is the default in this repo, has no password, uses the username as the password, uses a placeholder (`changeme`, `postgres`, …), or the password is under 16 characters |
 
 and `/auth/dev-sign-in` is not registered at all. The database check is about
 credentials, not topology — a `localhost` database in production is fine.

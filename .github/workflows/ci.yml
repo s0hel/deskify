@@ -9,14 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     # Settings fail closed (app/config.py). CI opts into dev like any dev box.
     env:
-      DESKFLOW_ENVIRONMENT: dev
+      DESKIFY_ENVIRONMENT: dev
     services:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: deskflow
-          POSTGRES_PASSWORD: deskflow
-          POSTGRES_DB: deskflow
+          POSTGRES_USER: deskify
+          POSTGRES_PASSWORD: deskify
+          POSTGRES_DB: deskify
         ports: ["55432:5432"]
         options: >-
           --health-cmd pg_isready --health-interval 5s
@@ -64,7 +64,7 @@ jobs:
       - name: Refuse to start with the default JWT secret outside dev
         working-directory: api
         env:
-          DESKFLOW_ENVIRONMENT: prod
+          DESKIFY_ENVIRONMENT: prod
         run: |
           if uv run python -c "import app.config" 2>/dev/null; then
             echo "::error::guard did not fire: the API booted in prod with the default JWT secret"
@@ -75,10 +75,10 @@ jobs:
       - name: Refuse to start with the default database URL outside dev
         working-directory: api
         env:
-          DESKFLOW_ENVIRONMENT: prod
+          DESKIFY_ENVIRONMENT: prod
           # A real signing key is not enough if the database credentials are
           # the ones published in this repository.
-          DESKFLOW_JWT_SECRET: ${{ github.sha }}${{ github.sha }}
+          DESKIFY_JWT_SECRET: ${{ github.sha }}${{ github.sha }}
         run: |
           if uv run python -c "import app.config" 2>/dev/null; then
             echo "::error::guard did not fire: the API booted in prod with the default database URL"
@@ -90,9 +90,9 @@ jobs:
         working-directory: api
         env:
           # Guards the guards: if this fails, the two checks above prove nothing.
-          DESKFLOW_ENVIRONMENT: prod
-          DESKFLOW_JWT_SECRET: ${{ github.sha }}${{ github.sha }}
-          DESKFLOW_DATABASE_URL: postgresql+asyncpg://svc:${{ github.sha }}@db.internal:5432/deskflow
+          DESKIFY_ENVIRONMENT: prod
+          DESKIFY_JWT_SECRET: ${{ github.sha }}${{ github.sha }}
+          DESKIFY_DATABASE_URL: postgresql+asyncpg://svc:${{ github.sha }}@db.internal:5432/deskify
         run: uv run python -c "import app.config; print('configured prod boots')"
 
   contract:

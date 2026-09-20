@@ -9,15 +9,15 @@ rules are pure. Only tests that request `db` get a connection.
 # app.config -- this must stay above the app imports below.
 import os
 
-os.environ.setdefault("DESKFLOW_ENVIRONMENT", "dev")
+os.environ.setdefault("DESKIFY_ENVIRONMENT", "dev")
 
 # The suite TRUNCATES every table between tests, so it must never point at the
 # database you are developing against. Running `make test` should not silently
 # empty the seeded demo tenant out from under a running app.
-TEST_DB_NAME = "deskflow_test"
-os.environ["DESKFLOW_DATABASE_URL"] = os.environ.get(
-    "DESKFLOW_TEST_DATABASE_URL",
-    f"postgresql+asyncpg://deskflow:deskflow@localhost:55432/{TEST_DB_NAME}",
+TEST_DB_NAME = "deskify_test"
+os.environ["DESKIFY_DATABASE_URL"] = os.environ.get(
+    "DESKIFY_TEST_DATABASE_URL",
+    f"postgresql+asyncpg://deskify:deskify@localhost:55432/{TEST_DB_NAME}",
 )
 
 from datetime import UTC, datetime
@@ -55,7 +55,7 @@ def new_engine():
 
 
 def pytest_configure(config):
-    """Session setup: ensure deskflow_test exists and is migrated."""
+    """Session setup: ensure deskify_test exists and is migrated."""
     import asyncio
     import subprocess
     import sys
@@ -64,7 +64,7 @@ def pytest_configure(config):
         import asyncpg
 
         admin = await asyncpg.connect(
-            user="deskflow", password="deskflow", host="localhost",
+            user="deskify", password="deskify", host="localhost",
             port=55432, database="postgres",
         )
         try:

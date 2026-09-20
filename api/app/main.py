@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.errors import DeskflowError, handle
+from app.errors import DeskifyError, handle
 from app.routers import auth, core, people
 
 structlog.configure(processors=[structlog.processors.add_log_level,
@@ -11,7 +11,7 @@ structlog.configure(processors=[structlog.processors.add_log_level,
                                 structlog.processors.JSONRenderer()])
 
 app = FastAPI(
-    title="deskflow API",
+    title="Deskify API",
     version="0.1.0",
     description="Phase 0 skeleton. See docs/TECHNICAL_DESIGN.md.",
 )
@@ -24,14 +24,14 @@ app.add_middleware(
     allow_headers=["authorization", "content-type", "idempotency-key"],
 )
 
-app.add_exception_handler(DeskflowError, handle)
+app.add_exception_handler(DeskifyError, handle)
 app.include_router(auth.router)
 app.include_router(core.router)
 app.include_router(people.router)
 
 # /auth/dev-sign-in issues a valid token for any known email with no
 # credential, so it is mounted only where it has been asked for: in dev, or
-# where DESKFLOW_ALLOW_DEV_SIGN_IN was set deliberately. Everywhere else the
+# where DESKIFY_ALLOW_DEV_SIGN_IN was set deliberately. Everywhere else the
 # route genuinely does not exist rather than existing and refusing, and an
 # unconfigured deployment lands there by default (app/config.py).
 if settings.dev_sign_in_enabled:

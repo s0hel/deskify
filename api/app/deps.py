@@ -15,11 +15,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import decode_access_token
 from app.db import get_session
-from app.errors import DeskflowError
+from app.errors import DeskifyError
 from app.repository import TenantRepository
 
 
-class Unauthenticated(DeskflowError):
+class Unauthenticated(DeskifyError):
     status, code, title = 401, "UNAUTHENTICATED", "Sign in required"
 
 

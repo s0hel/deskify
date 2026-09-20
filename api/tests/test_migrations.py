@@ -24,8 +24,8 @@ from tests.conftest import TEST_DB_NAME
 
 API_DIR = Path(__file__).resolve().parents[1]
 ADMIN = {
-    "user": "deskflow",
-    "password": "deskflow",
+    "user": "deskify",
+    "password": "deskify",
     "host": "localhost",
     "port": 55432,
     "database": "postgres",
@@ -39,7 +39,7 @@ async def _admin():
 @pytest.fixture
 async def virgin_database():
     """A database created for this test and dropped afterwards."""
-    name = f"deskflow_migrate_{uuid.uuid4().hex[:8]}"
+    name = f"deskify_migrate_{uuid.uuid4().hex[:8]}"
     conn = await _admin()
     try:
         await conn.execute(f'CREATE DATABASE "{name}"')
@@ -59,11 +59,11 @@ async def virgin_database():
 
 
 def _alembic(args: list[str], database: str) -> subprocess.CompletedProcess:
-    url = f"postgresql+asyncpg://deskflow:deskflow@localhost:55432/{database}"
+    url = f"postgresql+asyncpg://deskify:deskify@localhost:55432/{database}"
     return subprocess.run(
         [sys.executable, "-m", "alembic", *args],
         cwd=API_DIR,
-        env={**os.environ, "DESKFLOW_ENVIRONMENT": "dev", "DESKFLOW_DATABASE_URL": url},
+        env={**os.environ, "DESKIFY_ENVIRONMENT": "dev", "DESKIFY_DATABASE_URL": url},
         capture_output=True,
         text=True,
         timeout=120,

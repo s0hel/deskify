@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import auth as auth_svc
 from app.config import settings
 from app.db import get_session
-from app.errors import DeskflowError
+from app.errors import DeskifyError
 from app.models import AppUser, EmailDomain
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -76,12 +76,12 @@ async def dev_sign_in(
     # Defence in depth: main.py should not have mounted this at all unless it
     # was asked for.
     if not settings.dev_sign_in_enabled:
-        raise DeskflowError("dev sign-in is not enabled")
+        raise DeskifyError("dev sign-in is not enabled")
     user = (
         await session.execute(select(AppUser).where(AppUser.email == body.email))
     ).scalar_one_or_none()
     if user is None:
-        raise DeskflowError("unknown user")
+        raise DeskifyError("unknown user")
     return {"code": auth_svc.issue_one_time_code(user.id, user.organization_id)}
 
 
@@ -93,7 +93,7 @@ class TokenRequest(BaseModel):
 async def exchange_code(body: TokenRequest) -> TokenResponse:
     redeemed = auth_svc.redeem_one_time_code(body.code)
     if redeemed is None:
-        raise DeskflowError("invalid or expired code")
+        raise DeskifyError("invalid or expired code")
     user_id, org_id = redeemed
     return TokenResponse(
         access_token=auth_svc.mint_access_token(user_id, org_id),

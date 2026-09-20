@@ -44,7 +44,7 @@ function describeSignInFailure(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.status === 404) {
       return local
-        ? "Development sign-in is switched off. Is DESKFLOW_ENVIRONMENT=dev set on the API?"
+        ? "Development sign-in is switched off. Is DESKIFY_ENVIRONMENT=dev set on the API?"
         : "This deployment has no sign-in configured yet. It needs an identity provider (Google Workspace or Microsoft Entra) before anyone can sign in.";
     }
     return `Sign-in failed (${error.code}).`;

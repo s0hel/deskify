@@ -53,11 +53,11 @@ REAL_SECRET = "x" * 48
 #: .invalid is reserved by RFC 6761 and never resolves, so the probe's database
 #: connection fails INSTANTLY. A plausible-looking hostname can hit a slow
 #: resolver or a wildcard search domain and make this suite flaky.
-REAL_DB_URL = "postgresql+asyncpg://svc_deskflow:" + ("P" * 24) + "@db.invalid:5432/deskflow"
+REAL_DB_URL = "postgresql+asyncpg://svc_deskify:" + ("P" * 24) + "@db.invalid:5432/deskify"
 
 #: A fully-configured non-dev environment, so these tests exercise the ROUTE
 #: mounting rather than tripping a credential guard on the way in.
-PROD_ENV = {"DESKFLOW_JWT_SECRET": REAL_SECRET, "DESKFLOW_DATABASE_URL": REAL_DB_URL}
+PROD_ENV = {"DESKIFY_JWT_SECRET": REAL_SECRET, "DESKIFY_DATABASE_URL": REAL_DB_URL}
 
 
 def probe(env: dict[str, str]) -> subprocess.CompletedProcess:
@@ -73,7 +73,7 @@ def probe(env: dict[str, str]) -> subprocess.CompletedProcess:
 
 
 def test_dev_sign_in_is_reachable_in_dev():
-    result = probe({"DESKFLOW_ENVIRONMENT": "dev"})
+    result = probe({"DESKIFY_ENVIRONMENT": "dev"})
     assert result.returncode == 0, result.stderr[-800:]
     body = json.loads(result.stdout.strip().splitlines()[-1])
     assert body["environment"] == "dev"
@@ -85,7 +85,7 @@ def test_dev_sign_in_is_reachable_in_dev():
 def test_dev_sign_in_does_not_exist_outside_dev_by_default(env):
     """The default must stay off. It can be switched on (see below), but never
     by forgetting a variable."""
-    result = probe({"DESKFLOW_ENVIRONMENT": env, **PROD_ENV})
+    result = probe({"DESKIFY_ENVIRONMENT": env, **PROD_ENV})
     assert result.returncode == 0, result.stderr[-800:]
     body = json.loads(result.stdout.strip().splitlines()[-1])
     assert body["environment"] == env
@@ -98,15 +98,15 @@ def test_dev_sign_in_does_not_exist_outside_dev_by_default(env):
 
 @pytest.mark.parametrize("env", ["prod", "staging"])
 def test_the_explicit_switch_mounts_it_outside_dev(env):
-    """DESKFLOW_ALLOW_DEV_SIGN_IN is the only way to get this outside dev.
+    """DESKIFY_ALLOW_DEV_SIGN_IN is the only way to get this outside dev.
 
     It exists because the alternative people reach for -- setting
-    DESKFLOW_ENVIRONMENT=dev -- also disables TLS and re-enables asyncpg's
+    DESKIFY_ENVIRONMENT=dev -- also disables TLS and re-enables asyncpg's
     statement cache, so it breaks a managed database while granting far more
     than was intended. One switch, one effect, one name that says what it does.
     """
     result = probe(
-        {"DESKFLOW_ENVIRONMENT": env, "DESKFLOW_ALLOW_DEV_SIGN_IN": "true", **PROD_ENV}
+        {"DESKIFY_ENVIRONMENT": env, "DESKIFY_ALLOW_DEV_SIGN_IN": "true", **PROD_ENV}
     )
     assert result.returncode == 0, result.stderr[-800:]
     body = json.loads(result.stdout.strip().splitlines()[-1])
@@ -154,7 +154,7 @@ def test_dev_is_not_reported_as_exposed():
 
 def test_app_refuses_to_import_with_the_default_secret_outside_dev():
     """The config guards, exercised through a real process start."""
-    result = probe({"DESKFLOW_ENVIRONMENT": "prod"})
+    result = probe({"DESKIFY_ENVIRONMENT": "prod"})
     assert result.returncode != 0, "the app booted in prod with the source default secret"
     assert "development default" in result.stderr
 
@@ -162,6 +162,6 @@ def test_app_refuses_to_import_with_the_default_secret_outside_dev():
 def test_app_refuses_to_import_with_the_default_database_url_outside_dev():
     """A real signing key is not enough if the database credentials are the
     published ones."""
-    result = probe({"DESKFLOW_ENVIRONMENT": "prod", "DESKFLOW_JWT_SECRET": REAL_SECRET})
+    result = probe({"DESKIFY_ENVIRONMENT": "prod", "DESKIFY_JWT_SECRET": REAL_SECRET})
     assert result.returncode != 0, "the app booted in prod with the source default database URL"
-    assert "DESKFLOW_DATABASE_URL" in result.stderr
+    assert "DESKIFY_DATABASE_URL" in result.stderr
