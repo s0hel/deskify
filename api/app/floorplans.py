@@ -101,26 +101,40 @@ ZONE_LABEL_CAP_H = 14
 class Zone:
     name: str
     rect: Rect
-    #: Where the name goes. "above" unless something already sits there: on a
-    #: spine floor the meeting rooms overlap the north zone's top edge, and a
-    #: label above it is drawn underneath them. Moving the rooms instead would
-    #: move their circles, and those coordinates are already in the database
-    #: (app/seed.py copies them from here).
+    #: Where the name goes: "above" the box at its left end, or "below_end",
+    #: under the box at its right end. Above unless something already sits
+    #: there: on a spine floor the meeting rooms overlap the north zone's top
+    #: edge, and a label above it is drawn underneath them. Moving the rooms
+    #: instead would move their circles, and those coordinates are already in
+    #: the database (app/seed.py copies them from here).
+    #:
+    #: The RIGHT end, not the left, because below the north zone is the top of
+    #: the south zone, whose label is at its left: two labels stacked in the
+    #: corridor read as one pair belonging to the box underneath.
     label: str = "above"
 
     @property
     def label_baseline(self) -> float:
-        if self.label == "below":
+        if self.label == "below_end":
             return self.rect.bottom + ZONE_LABEL_GAP + ZONE_LABEL_CAP_H
         return self.rect.y - ZONE_LABEL_GAP
 
     @property
+    def label_x(self) -> float:
+        """Where the text is anchored: its start, or its END for below_end."""
+        return self.rect.right - 6 if self.label == "below_end" else self.rect.x + 6
+
+    @property
+    def label_anchor(self) -> str:
+        return "end" if self.label == "below_end" else "start"
+
+    @property
     def label_rect(self) -> Rect:
         """The box the label occupies (caps plus a little descent), for the
-        overlap test. The text is drawn from x + 6, as plans.py does."""
-        top = self.label_baseline - ZONE_LABEL_CAP_H
-        return Rect(self.rect.x + 6, top, len(self.name) * ZONE_LABEL_CHAR_W,
-                    ZONE_LABEL_CAP_H + 4)
+        overlap test."""
+        w = len(self.name) * ZONE_LABEL_CHAR_W
+        x = self.label_x - w if self.label_anchor == "end" else self.label_x
+        return Rect(x, self.label_baseline - ZONE_LABEL_CAP_H, w, ZONE_LABEL_CAP_H + 4)
 
 
 @dataclass
@@ -375,7 +389,7 @@ def spine_floor(
     zones = [
         # Below, into the spine: the meeting rooms sit over this zone's top edge.
         Zone("Engineering", Rect(margin_x - 18, margin_y - 30, desk_area_w + 36, pod_h + 44),
-             label="below"),
+             label="below_end"),
         Zone(
             "Design",
             Rect(margin_x - 18, margin_y + pod_h + spine_h - 14, desk_area_w + 36, pod_h + 44),

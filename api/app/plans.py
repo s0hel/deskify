@@ -116,7 +116,8 @@ def render(plan: FloorPlan) -> str:
             # Outside the dashed box, not inside it: a 15px label set 22px below
             # the top edge sits ON the dash and gets cut by it. Above, unless
             # the zone says below (app/floorplans.py Zone.label).
-            parts.append(_text(zone.rect.x + 6, zone.label_baseline, "zlabel", zone.name, "start"))
+            parts.append(_text(zone.label_x, zone.label_baseline, "zlabel", zone.name,
+                               zone.label_anchor))
         parts.append("</g>")
 
     parts.append('<g class="rooms">')

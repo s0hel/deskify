@@ -116,6 +116,19 @@ def test_every_zone_label_is_clear_of_the_drawing(floor: FloorPlan):
 
 
 @pytest.mark.parametrize("floor", ALL, ids=IDS)
+def test_no_two_zone_labels_read_as_a_pair(floor: FloorPlan):
+    """Clear of each other is not enough. Tampa 5F's fix first put
+    ENGINEERING under its box at the left, 28px above DESIGN, and the two
+    read as one stacked caption for the box below them."""
+    labels = [(z.name, z.label_rect) for z in floor.zones]
+    for i, (a_name, a) in enumerate(labels):
+        for b_name, b in labels[i + 1:]:
+            if a.x < b.right and b.x < a.right:  # one above the other
+                gap = max(b.y - a.bottom, a.y - b.bottom)
+                assert gap >= 60, f"{floor.key}: {a_name} and {b_name} labels {gap:.0f}px apart"
+
+
+@pytest.mark.parametrize("floor", ALL, ids=IDS)
 def test_the_committed_drawing_matches_the_generator(floor: FloorPlan):
     """The SVGs are committed so a clean checkout builds without Python. That
     only holds if they are regenerated when the layout moves: `make plans`."""
