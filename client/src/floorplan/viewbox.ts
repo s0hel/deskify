@@ -54,21 +54,52 @@ export function coverViewBox(plan: Size, container: Size): ViewBox {
  * Fold a gesture transform into the viewBox.
  *
  * Runs ONCE, on gesture end. During the gesture the same transform is a
- * composited CSS transform on the wrapper; folding it back into the viewBox is
- * what re-rasterizes the SVG crisp at the new scale.
+ * composited CSS transform on the wrapper (`toCss`, transform-origin 0 0); the
+ * fold must land EXACTLY where that transform showed the plan, or the view
+ * jumps when the fingers lift. With origin 0 0, content at local px p is drawn
+ * at t + k*p, so the screen's left edge shows local px -t/k.
+ *
+ * (It used to assume the zoom was about the centre while the CSS scaled about
+ * the top-left corner, and every pinch ended with a visible jump.)
  */
 export function foldTransform(vb: ViewBox, t: Transform, viewportPx: Size): ViewBox {
   const unitsPerPxX = vb.w / viewportPx.w;
   const unitsPerPxY = vb.h / viewportPx.h;
-  const w = vb.w / t.k;
-  const h = vb.h / t.k;
-  // Zoom is anchored at the centre, so the origin shifts by half the change.
   return {
-    x: vb.x - t.x * unitsPerPxX + (vb.w - w) / 2,
-    y: vb.y - t.y * unitsPerPxY + (vb.h - h) / 2,
-    w,
-    h,
+    x: vb.x - (t.x / t.k) * unitsPerPxX,
+    y: vb.y - (t.y / t.k) * unitsPerPxY,
+    w: vb.w / t.k,
+    h: vb.h / t.k,
   };
+}
+
+/** What a pinch needs to remember from the moment its second finger lands. */
+export interface PinchStart {
+  /** Distance between the fingers then. */
+  dist: number;
+  /** The gesture's scale then (a pan may already be under way). */
+  k: number;
+  /** The content point under the fingers' midpoint, in untransformed wrapper px. */
+  px: number;
+  py: number;
+}
+
+/**
+ * The gesture transform for a pinch, given where the two fingers are now
+ * (in untransformed wrapper px). Zooms about the fingers rather than a corner,
+ * and follows them if they drift: the content point that was under their
+ * midpoint stays under it. Pairs with foldTransform, which lands where this
+ * showed, so nothing jumps when the fingers lift.
+ */
+export function pinchTransform(
+  start: PinchStart,
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+): Transform {
+  const k = start.k * (Math.hypot(a.x - b.x, a.y - b.y) / start.dist);
+  const mx = (a.x + b.x) / 2;
+  const my = (a.y + b.y) / 2;
+  return { x: mx - k * start.px, y: my - k * start.py, k };
 }
 
 /**

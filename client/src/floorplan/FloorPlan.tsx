@@ -17,12 +17,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   IDENTITY,
+  type PinchStart,
   type Size,
   type Transform,
   type ViewBox,
   clampViewBox,
   coverViewBox,
   foldTransform,
+  pinchTransform,
   shouldRenderLabels,
   toCss,
   zoomAt,
@@ -71,7 +73,9 @@ export function FloorPlan({
   const svg = useRef<SVGSVGElement>(null);
   const gesture = useRef<Transform>({ ...IDENTITY });
   const pointers = useRef(new Map<number, { x: number; y: number }>());
-  const pinchStart = useRef<{ dist: number; k: number } | null>(null);
+  /** Captured when the second finger lands (see pinchTransform), plus the
+   *  wrapper's layout origin on screen, which a transform does not move. */
+  const pinchStart = useRef<(PinchStart & { ox: number; oy: number }) | null>(null);
   // How far the pointer(s) have travelled since the gesture began. A tap that
   // wobbles a few px is still a tap; anything further was a pan or a pinch,
   // and the click the browser fires when it ends must not select a desk.
@@ -131,8 +135,10 @@ export function FloorPlan({
     const t = gesture.current;
     if (t.x === 0 && t.y === 0 && t.k === 1) return;
 
-    const rect = el.getBoundingClientRect();
-    const size = { w: rect.width, h: rect.height };
+    // Layout size, NOT getBoundingClientRect: mid-pinch the wrapper is still
+    // scaled, and its rect is k times the real viewport -- a second jump on
+    // every pinch, in proportion to how far it zoomed.
+    const size = { w: el.clientWidth, h: el.clientHeight };
     const next = clampViewBox(foldTransform(viewBox, t, size), plan, size);
 
     gesture.current = { ...IDENTITY };
@@ -164,11 +170,23 @@ export function FloorPlan({
     (e.target as Element).setPointerCapture?.(e.pointerId);
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (wrapper.current) wrapper.current.style.willChange = "transform";
-    if (pointers.current.size === 2) {
+    if (pointers.current.size === 2 && wrapper.current) {
       const [a, b] = [...pointers.current.values()];
+      const g = gesture.current;
+      // With transform-origin 0 0 the transformed box is the layout box
+      // shifted by (g.x, g.y), so subtracting that gives the layout origin.
+      const rect = wrapper.current.getBoundingClientRect();
+      const ox = rect.left - g.x;
+      const oy = rect.top - g.y;
+      const mx = (a.x + b.x) / 2 - ox;
+      const my = (a.y + b.y) / 2 - oy;
       pinchStart.current = {
         dist: Math.hypot(a.x - b.x, a.y - b.y),
-        k: gesture.current.k,
+        k: g.k,
+        px: (mx - g.x) / g.k,
+        py: (my - g.y) / g.k,
+        ox,
+        oy,
       };
     }
   }, []);
@@ -181,9 +199,13 @@ export function FloorPlan({
       travel.current += Math.hypot(e.clientX - prev.x, e.clientY - prev.y);
 
       if (pointers.current.size === 2 && pinchStart.current) {
+        const p = pinchStart.current;
         const [a, b] = [...pointers.current.values()];
-        const dist = Math.hypot(a.x - b.x, a.y - b.y);
-        gesture.current.k = pinchStart.current.k * (dist / pinchStart.current.dist);
+        gesture.current = pinchTransform(
+          p,
+          { x: a.x - p.ox, y: a.y - p.oy },
+          { x: b.x - p.ox, y: b.y - p.oy },
+        );
       } else {
         gesture.current.x += e.clientX - prev.x;
         gesture.current.y += e.clientY - prev.y;

@@ -4,6 +4,7 @@ import {
   clampViewBox,
   coverViewBox,
   foldTransform,
+  pinchTransform,
   shouldRenderLabels,
   toCss,
   zoomAt,
@@ -55,10 +56,22 @@ describe("foldTransform", () => {
     expect(foldTransform(FULL, { x: 0, y: 0, k: 2 }, VIEWPORT).w).toBe(800);
   });
 
-  it("zooms about the centre, not the top-left corner", () => {
-    const before = FULL.x + FULL.w / 2;
-    const after = foldTransform(FULL, { x: 0, y: 0, k: 2 }, VIEWPORT);
-    expect(after.x + after.w / 2).toBeCloseTo(before, 5);
+  it("lands exactly where the CSS transform showed the plan, so nothing jumps", () => {
+    // toCss draws local px p at t + k*p (transform-origin 0 0). Whatever plan
+    // point was under a screen position mid-gesture must be under it after.
+    const under = (vb: typeof FULL, sx: number, sy: number) => ({
+      x: vb.x + (sx / VIEWPORT.w) * vb.w,
+      y: vb.y + (sy / VIEWPORT.h) * vb.h,
+    });
+    for (const t of [{ x: 0, y: 0, k: 2 }, { x: -130, y: 40, k: 1.7 }, { x: 90, y: -20, k: 0.6 }]) {
+      const after = foldTransform(FULL, t, VIEWPORT);
+      for (const [px, py] of [[0, 0], [400, 250], [731, 12]]) {
+        const sx = t.x + t.k * px;
+        const sy = t.y + t.k * py;
+        expect(under(after, sx, sy).x).toBeCloseTo(under(FULL, px, py).x, 6);
+        expect(under(after, sx, sy).y).toBeCloseTo(under(FULL, px, py).y, 6);
+      }
+    }
   });
 });
 
@@ -159,5 +172,37 @@ describe("zoomAt", () => {
     let vb = coverViewBox(PLAN, PHONE);
     for (let i = 0; i < 30; i++) vb = clampViewBox(zoomAt(vb, 0.8, { x: 187, y: 350 }, PHONE), PLAN, PHONE);
     expect(vb.w).toBeGreaterThanOrEqual(PLAN.w);
+  });
+});
+
+describe("pinchTransform", () => {
+  const VB = { x: 200, y: 100, w: 800, h: 500 };
+  const VIEW = { w: 400, h: 250 };
+  // Plan point under a wrapper-px position, for a viewBox (no transform).
+  const under = (vb: typeof VB, x: number, y: number) => ({
+    x: vb.x + (x / VIEW.w) * vb.w,
+    y: vb.y + (y / VIEW.h) * vb.h,
+  });
+
+  it("keeps the plan point under the fingers there, through the fold", () => {
+    // Fingers land around (120, 80), spread apart, and drift right.
+    const start = { dist: 100, k: 1, px: 120, py: 80 };
+    const before = under(VB, 120, 80);
+    const a = { x: 60, y: 90 };
+    const b = { x: 260, y: 90 }; // midpoint (160, 90), twice as far apart
+    const t = pinchTransform(start, a, b);
+    expect(t.k).toBeCloseTo(2, 6);
+    const after = foldTransform(VB, t, VIEW);
+    // The same plan point is now under the fingers' NEW midpoint.
+    expect(under(after, 160, 90).x).toBeCloseTo(before.x, 6);
+    expect(under(after, 160, 90).y).toBeCloseTo(before.y, 6);
+  });
+
+  it("is the identity for fingers that have not moved", () => {
+    const start = { dist: 100, k: 1, px: 150, py: 75 };
+    const t = pinchTransform(start, { x: 100, y: 75 }, { x: 200, y: 75 });
+    expect(t.k).toBeCloseTo(1, 6);
+    expect(t.x).toBeCloseTo(0, 6);
+    expect(t.y).toBeCloseTo(0, 6);
   });
 });
