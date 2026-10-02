@@ -29,9 +29,10 @@ export interface Size {
 
 export const IDENTITY: Transform = { x: 0, y: 0, k: 1 };
 
-/** How far in and out we let the user zoom, as a multiple of the plan width. */
+/** How far in and out we let the user zoom: in, as a fraction of the plan
+ *  width; out, as a multiple of the view that fits the whole plan. */
 const MIN_SPAN = 1 / 10;
-const MAX_SPAN = 1.6;
+const MAX_SPAN = 1.2;
 
 /**
  * The starting view: fill the container with plan, centred, showing as much as
@@ -71,33 +72,57 @@ export function foldTransform(vb: ViewBox, t: Transform, viewportPx: Size): View
 }
 
 /**
+ * Zoom by `factor` (>1 is in) keeping the plan point under `point` -- a
+ * position in container px -- exactly where it is. The wheel/trackpad zoom:
+ * on a desktop, zooming toward the middle of the screen when the pointer is on
+ * a desk in the corner reads as the plan sliding away from you.
+ *
+ * Not clamped; the caller clamps, as it does for every other gesture.
+ */
+export function zoomAt(vb: ViewBox, factor: number, point: { x: number; y: number }, container: Size): ViewBox {
+  const fx = point.x / container.w;
+  const fy = point.y / container.h;
+  const w = vb.w / factor;
+  const h = vb.h / factor;
+  return {
+    x: vb.x + fx * vb.w - fx * w,
+    y: vb.y + fy * vb.h - fy * h,
+    w,
+    h,
+  };
+}
+
+/**
  * Keep the view within sane zoom limits and stop the plan being dragged
  * entirely off screen, while PRESERVING the container's aspect ratio.
  */
 export function clampViewBox(vb: ViewBox, plan: Size, container: Size): ViewBox {
   const aspect = container.w / container.h;
   const minW = plan.w * MIN_SPAN;
-  const maxW = plan.w * MAX_SPAN;
+  // Out as far as the WHOLE plan, with room to spare, whatever the container's
+  // shape. This used to be a cap on width and a separate cap on height
+  // (MAX_SPAN x the plan's), and in a tall container the height cap bit
+  // first: a phone could never back out past about a third of a wide floor
+  // like Tampa 5F, by pinch or by anything else.
+  const containW = Math.max(plan.w, plan.h * aspect);
+  const maxW = containW * MAX_SPAN;
 
-  let w = Math.min(Math.max(vb.w, minW), maxW);
-  let h = w / aspect;
-  // Re-derive width if the height clamp bites, so the aspect always holds.
-  if (h > plan.h * MAX_SPAN) {
-    h = plan.h * MAX_SPAN;
-    w = h * aspect;
-  }
+  const w = Math.min(Math.max(vb.w, minW), maxW);
+  const h = w / aspect;
 
+  return { w, h, x: clampAxis(vb.x, w, plan.w), y: clampAxis(vb.y, h, plan.h) };
+}
+
+/** One axis of the pan clamp. */
+function clampAxis(start: number, span: number, planSpan: number): number {
+  // Zoomed out past the plan on this axis: centre it. Pinning it to one edge
+  // leaves all the empty space on the other side, which reads as a bug.
+  if (span >= planSpan) return (planSpan - span) / 2;
   // A little slack on each side so desks at the plan's edge can be centred and
   // tapped. Kept small: more than this and a focused desk sits against a wide
   // empty band, which reads as a rendering bug.
-  const slackX = w * 0.12;
-  const slackY = h * 0.12;
-  return {
-    w,
-    h,
-    x: Math.min(Math.max(vb.x, -slackX), Math.max(-slackX, plan.w - w + slackX)),
-    y: Math.min(Math.max(vb.y, -slackY), Math.max(-slackY, plan.h - h + slackY)),
-  };
+  const slack = span * 0.12;
+  return Math.min(Math.max(start, -slack), planSpan - span + slack);
 }
 
 export function toCss(t: Transform): string {

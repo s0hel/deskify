@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { clampViewBox, coverViewBox, foldTransform, shouldRenderLabels, toCss } from "./viewbox";
+import {
+  clampViewBox,
+  coverViewBox,
+  foldTransform,
+  shouldRenderLabels,
+  toCss,
+  zoomAt,
+} from "./viewbox";
 
 const PLAN = { w: 1600, h: 1000 };
 const PHONE = { w: 375, h: 700 }; // tall and narrow: the hard case
@@ -62,7 +69,7 @@ describe("clampViewBox", () => {
 
   it("refuses to zoom out past the limit", () => {
     expect(clampViewBox({ x: 0, y: 0, w: 99999, h: 6 }, PLAN, PHONE).w).toBeLessThanOrEqual(
-      PLAN.w * 1.6,
+      PLAN.w * 1.2,
     );
   });
 
@@ -75,6 +82,18 @@ describe("clampViewBox", () => {
     const vb = clampViewBox({ x: 99999, y: 99999, w: 400, h: 746 }, PLAN, PHONE);
     expect(vb.x).toBeLessThan(PLAN.w);
     expect(vb.y).toBeLessThan(PLAN.h);
+  });
+
+  it("lets a tall container zoom out to the whole of a wide plan", () => {
+    // Tampa 5F on a phone: the old height cap stopped this at a third.
+    const wide = { w: 1900, h: 730 };
+    const vb = clampViewBox({ x: 0, y: 0, w: 99999, h: 99999 }, wide, PHONE);
+    expect(vb.w).toBeGreaterThanOrEqual(wide.w);
+  });
+
+  it("centres a plan that is smaller than the view instead of pinning it left", () => {
+    const vb = clampViewBox({ x: -5000, y: 0, w: 2400, h: 1200 }, PLAN, WIDE);
+    expect(vb.x + vb.w / 2).toBeCloseTo(PLAN.w / 2, 5);
   });
 
   it("leaves a already-valid view alone", () => {
@@ -107,5 +126,38 @@ describe("shouldRenderLabels", () => {
     const vb = { x: 0, y: 0, w: 1600, h: 1000 };
     expect(shouldRenderLabels(vb, { w: 375, h: 700 })).toBe(false);
     expect(shouldRenderLabels(vb, { w: 1400, h: 900 })).toBe(true);
+  });
+});
+
+describe("zoomAt", () => {
+  const VB = { x: 100, y: 50, w: 800, h: 400 };
+  const BOX = { w: 400, h: 200 };
+
+  it("keeps the plan point under the pointer where it is", () => {
+    const p = { x: 300, y: 50 };
+    const under = (vb: typeof VB) => ({
+      x: vb.x + (p.x / BOX.w) * vb.w,
+      y: vb.y + (p.y / BOX.h) * vb.h,
+    });
+    for (const factor of [2, 0.5, 1.25]) {
+      const next = zoomAt(VB, factor, p, BOX);
+      expect(under(next).x).toBeCloseTo(under(VB).x, 6);
+      expect(under(next).y).toBeCloseTo(under(VB).y, 6);
+    }
+  });
+
+  it("zooms in by shrinking the span, out by growing it, and keeps the aspect", () => {
+    expect(zoomAt(VB, 2, { x: 0, y: 0 }, BOX).w).toBe(400);
+    expect(zoomAt(VB, 0.5, { x: 0, y: 0 }, BOX).w).toBe(1600);
+    const out = zoomAt(VB, 0.5, { x: 123, y: 45 }, BOX);
+    expect(out.w / out.h).toBeCloseTo(VB.w / VB.h, 6);
+  });
+
+  it("zooms out far enough to see the whole plan once clamped", () => {
+    // The point of the wheel: a phone-shaped view of a wide floor must be
+    // able to back out until the full width is on screen.
+    let vb = coverViewBox(PLAN, PHONE);
+    for (let i = 0; i < 30; i++) vb = clampViewBox(zoomAt(vb, 0.8, { x: 187, y: 350 }, PHONE), PLAN, PHONE);
+    expect(vb.w).toBeGreaterThanOrEqual(PLAN.w);
   });
 });

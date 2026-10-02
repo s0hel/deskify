@@ -25,6 +25,7 @@ import {
   foldTransform,
   shouldRenderLabels,
   toCss,
+  zoomAt,
 } from "./viewbox";
 
 export interface Desk {
@@ -190,6 +191,63 @@ export function FloorPlan({
     },
     [commit],
   );
+
+  // -- Wheel and trackpad zoom, for anyone without a touch screen. -----------
+  // Same rules as a pinch: while the wheel turns, only the CSS transform moves
+  // (Rule 2); once it stops, ONE fold into the viewBox (Rule 3). Anchored at
+  // the pointer, as every desktop map is.
+  const viewBoxRef = useRef(viewBox);
+  viewBoxRef.current = viewBox;
+  useEffect(() => {
+    const el = wrapper.current;
+    if (!el) return;
+    let factor = 1;
+    let anchor = { x: 0, y: 0 };
+    let idle: ReturnType<typeof setTimeout> | undefined;
+
+    const settle = () => {
+      idle = undefined;
+      // Layout size, which a CSS transform does not change.
+      const box = { w: el.clientWidth, h: el.clientHeight };
+      const next = clampViewBox(zoomAt(viewBoxRef.current, factor, anchor, box), plan, box);
+      factor = 1;
+      el.style.transform = "";
+      el.style.willChange = "";
+      setViewBox(next);
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      // A drag in progress owns the transform; don't fight it.
+      if (pointers.current.size > 0) return;
+      // Ours, not the page's: React's onWheel is passive and cannot stop the
+      // page scrolling, hence addEventListener with passive: false.
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      if (factor === 1) {
+        // Anchor in UNtransformed container px, fixed for the whole gesture.
+        anchor = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        el.style.willChange = "transform";
+      }
+      // Lines, not pixels, on some mice. A trackpad pinch arrives as a wheel
+      // with ctrlKey and small deltas, so it gets a steeper curve.
+      const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+      factor *= Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0015));
+      // Scale about the anchor, with transform-origin 0 0.
+      el.style.transform = toCss({
+        x: anchor.x * (1 - factor),
+        y: anchor.y * (1 - factor),
+        k: factor,
+      });
+      if (idle) clearTimeout(idle);
+      idle = setTimeout(settle, 140);
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      if (idle) clearTimeout(idle);
+    };
+  }, [plan]);
 
   // -- Rule 5: one delegated listener for all 300 nodes. ----------------------
   const onClick = useCallback(
