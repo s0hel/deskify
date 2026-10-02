@@ -28,6 +28,10 @@ export const EN: Record<string, Formatter> = {
   RESOURCE_UNAVAILABLE: () => "That desk is out of service.",
   ZONE_RESTRICTED: () => "That area is reserved for another team.",
   DESK_ASSIGNED: () => "That desk belongs to someone else.",
+  ALREADY_HAVE_DESK: (p) =>
+    p.desk
+      ? `You already have ${p.desk} booked for that time.`
+      : "You already have a desk booked for that time.",
   BOOKING_HORIZON_EXCEEDED: (p) => `You can book up to ${plural(p.limit_days, "day")} ahead.`,
   MAX_FUTURE_BOOKINGS: (p) =>
     `You already have ${plural(p.limit, "upcoming booking")}.`,

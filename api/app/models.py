@@ -209,6 +209,11 @@ class Booking(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )
+    # The table also has `resource_kind`, filled by a trigger from `resource`
+    # and read only by the booking_one_desk_per_user constraint (migration
+    # 0005). It is deliberately NOT mapped: revision 0001 builds this table
+    # from these models, so mapping it here would make a fresh database create
+    # the column twice. Nothing in Python should need to set it.
     __table_args__ = (
         CheckConstraint(
             "status IN " + str(BOOKING_STATUSES).replace('"', "'"), name="booking_status_check"

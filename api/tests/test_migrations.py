@@ -100,6 +100,14 @@ async def test_the_whole_chain_applies_to_an_empty_database(virgin_database):
         )
         assert definition is not None, "the exclusion constraint did not survive migration"
         assert "gist" in definition.lower()
+
+        # And its mirror: one person, one desk at a time (0005).
+        definition = await conn.fetchval(
+            "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
+            "WHERE conname='booking_one_desk_per_user'"
+        )
+        assert definition is not None, "booking_one_desk_per_user did not survive migration"
+        assert "user_id WITH =" in definition and "resource_kind = 'desk'" in definition
     finally:
         await conn.close()
 

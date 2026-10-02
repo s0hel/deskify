@@ -113,6 +113,33 @@ def test_denials_carry_params_for_client_side_localization():
 
 
 # --------------------------------------------------------------------------
+# One desk per person at a time
+# --------------------------------------------------------------------------
+
+
+def test_a_second_overlapping_desk_is_refused_and_named():
+    [d] = evaluate(ctx(user_overlapping_desk="5F-N-03"))
+    assert (d.code, d.rule_key, d.params) == (
+        "ALREADY_HAVE_DESK", "one_desk_per_user", {"desk": "5F-N-03"}
+    )
+
+
+def test_no_overlapping_desk_passes():
+    assert codes(ctx(user_overlapping_desk=None)) == []
+
+
+def test_a_room_is_not_a_second_desk():
+    """TDD §7.1. The loader does not look for an overlap when booking a room,
+    but the rule must not depend on that."""
+    assert codes(ctx(resource_kind="room", user_overlapping_desk="5F-N-03")) == []
+
+
+def test_an_override_does_not_grant_a_second_desk():
+    c = ctx(user_overlapping_desk="5F-N-03")
+    assert overridden(c) == codes(c) == ["ALREADY_HAVE_DESK"]
+
+
+# --------------------------------------------------------------------------
 # The administrative override (FR-8.6)
 # --------------------------------------------------------------------------
 

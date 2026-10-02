@@ -44,6 +44,16 @@ describe("refusal messages", () => {
     );
   });
 
+  it("names the desk you already hold, when the server knows it", () => {
+    expect(explain(d("ALREADY_HAVE_DESK", { desk: "5F-N-03" }))).toBe(
+      "You already have 5F-N-03 booked for that time.",
+    );
+    // A concurrent request caught by the constraint arrives without a name.
+    expect(explain(d("ALREADY_HAVE_DESK", {}))).toBe(
+      "You already have a desk booked for that time.",
+    );
+  });
+
   it("falls back rather than showing a raw code to the user", () => {
     expect(explain(d("SOMETHING_NEW", {}))).toBe("That booking isn't allowed.");
   });
@@ -59,6 +69,7 @@ describe("refusal messages", () => {
       "RESOURCE_UNAVAILABLE",
       "ZONE_RESTRICTED",
       "DESK_ASSIGNED",
+      "ALREADY_HAVE_DESK",
       "BOOKING_HORIZON_EXCEEDED",
       "MAX_FUTURE_BOOKINGS",
       "BOOKING_RELEASED",

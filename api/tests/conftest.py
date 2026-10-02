@@ -112,8 +112,14 @@ async def sessionmaker_factory():
     await engine.dispose()
 
 
-async def make_org(s, name="Acme", *, capacity_cap=None, tz="Europe/Berlin", desks=1):
-    """A complete tenant: org, site, floor, zone, desks, and a user."""
+async def make_org(
+    s, name="Acme", *, capacity_cap=None, tz="Europe/Berlin", desks=1, users=1, rooms=0
+):
+    """A complete tenant: org, site, floor, zone, desks, and a user.
+
+    `users` adds colleagues to fx["users"] (fx["user"] is the first). A test
+    that books several desks for one time needs one person per desk: a single
+    user cannot hold two (booking_one_desk_per_user)."""
     org = Organization(name=name, region="eu")
     s.add(org)
     await s.flush()
@@ -137,9 +143,22 @@ async def make_org(s, name="Acme", *, capacity_cap=None, tz="Europe/Berlin", des
             kind="desk", name=f"4F-A-{i + 1:02d}", attributes={"sit_stand": True},
             plan_x=100 + i * 40, plan_y=100,
         ))
+    rooms_made = [
+        Resource(
+            organization_id=org.id, site_id=site.id, floor_id=floor.id, zone_id=zone.id,
+            kind="room", name=f"4F-R-{i + 1:02d}", capacity=8,
+            plan_x=100 + i * 40, plan_y=400,
+        )
+        for i in range(rooms)
+    ]
     user = AppUser(organization_id=org.id, email=f"priya@{name.lower()}.example",
                    display_name="Priya")
-    s.add_all([*made, user])
+    others = [
+        AppUser(organization_id=org.id, email=f"colleague{i}@{name.lower()}.example",
+                display_name=f"Colleague {i}")
+        for i in range(1, users)
+    ]
+    s.add_all([*made, *rooms_made, user, *others])
     await s.flush()
 
     # Every fixture org has one team containing its default user, so tests that
@@ -153,7 +172,8 @@ async def make_org(s, name="Acme", *, capacity_cap=None, tz="Europe/Berlin", des
     await s.flush()
     await s.commit()
     return {"org": org, "site": site, "floor": floor, "zone": zone,
-            "desks": made, "desk": made[0], "user": user, "team": team}
+            "desks": made, "desk": made[0], "user": user, "users": [user, *others],
+            "rooms": rooms_made, "team": team}
 
 
 async def grant_role(s, fx, user, role: str, scope_id=None):

@@ -55,6 +55,9 @@ class PolicyContext:
     blackout_reason: str | None = None
     site_booked_count: int = 0
     site_capacity_cap: int | None = None
+    resource_kind: str = "desk"
+    # The user's own live desk booking overlapping the requested range, if any.
+    user_overlapping_desk: str | None = None
 
     def scope_of(self, key: str) -> str:
         return self.rule_scopes.get(key, "org")
@@ -146,6 +149,26 @@ def rule_assigned_desk(ctx: PolicyContext) -> Denial | None:
     return Denial("DESK_ASSIGNED", "assigned_desk", "site", {"owner_user_id": owner})
 
 
+def one_desk_denial(desk: str | None = None) -> Denial:
+    """Shared with the booking path, which raises the same denial when the
+    booking_one_desk_per_user constraint catches a concurrent request that
+    this rule could not see."""
+    return Denial("ALREADY_HAVE_DESK", "one_desk_per_user", "org",
+                  {"desk": desk} if desk else {})
+
+
+def rule_one_desk_per_user(ctx: PolicyContext) -> Denial | None:
+    """One desk per person at a time. Advisory, like rule_site_capacity: the
+    authoritative check is the booking_one_desk_per_user exclusion constraint.
+
+    Overlap, not date: a morning at one desk and an afternoon at another is
+    allowed (TDD §4.4). Rooms are exempt: holding a desk does not stop you
+    booking a meeting room (TDD §7.1)."""
+    if ctx.resource_kind != "desk" or ctx.user_overlapping_desk is None:
+        return None
+    return one_desk_denial(ctx.user_overlapping_desk)
+
+
 def rule_site_capacity(ctx: PolicyContext) -> Denial | None:
     """FR-6.3 -- advisory here; the authoritative check is the locked counter
     in the booking transaction (TDD §4.2). This exists so /bookings/validate
@@ -167,6 +190,7 @@ RULES: tuple = (
     rule_resource_available,
     rule_zone_permission,
     rule_assigned_desk,
+    rule_one_desk_per_user,
     rule_site_capacity,
     rule_booking_horizon,
     rule_max_concurrent,
@@ -184,6 +208,8 @@ RULES: tuple = (
 #:     took it out of service on purpose, usually themselves.
 #:   - `rule_assigned_desk` is somebody's own desk (FR-6.7). Giving it away
 #:     over their head is not an override, it is a different decision.
+#:   - `rule_one_desk_per_user` would be a second desk nobody can sit at, and
+#:     the exclusion constraint behind it would refuse the insert anyway.
 #:   - `rule_site_capacity` is a HARD limit (FR-6.3), often a fire-safety or
 #:     works-council number rather than a preference. Overriding it here
 #:     would also be a lie: the authoritative check is the locked counter in

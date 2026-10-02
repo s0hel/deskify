@@ -19,11 +19,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.errors import CapacityExceeded, NotFound, PolicyDenied, ResourceTaken
 from app.models import Booking, Resource, Site, SiteDayCapacity, Zone
-from app.policy import PolicyContext, evaluate
+from app.policy import PolicyContext, evaluate, one_desk_denial
 from app.repository import TenantRepository
 from app.timezone import local_date_of, parse_opening_hours
 
 DOUBLE_ALLOCATION_CONSTRAINT = "booking_no_double_allocation"
+ONE_DESK_PER_USER_CONSTRAINT = "booking_one_desk_per_user"
 
 #: deadlock_detected, serialization_failure.
 RETRYABLE_SQLSTATES = frozenset({"40P01", "40001"})
@@ -93,6 +94,25 @@ async def build_context(
         )
     )
 
+    # Mirrors the booking_one_desk_per_user predicate (migration 0005), so the
+    # dry run refuses exactly what the constraint would.
+    overlapping_desk = None
+    if resource.kind == "desk":
+        overlapping_desk = (
+            await session.execute(
+                select(Resource.name)
+                .join(Booking, Booking.resource_id == Resource.id)
+                .where(
+                    Booking.organization_id == repo.organization_id,
+                    Booking.user_id == user_id,
+                    Booking.status.notin_(RELEASED_STATUSES),
+                    Booking.during.overlaps(Range(start, end, bounds="[)")),
+                    Resource.kind == "desk",
+                )
+                .limit(1)
+            )
+        ).scalar()
+
     zone_group = None
     if resource.zone_id:
         zone = await repo.get(Zone, resource.zone_id)
@@ -127,6 +147,8 @@ async def build_context(
         zone_restricted_to_group_id=zone_group,
         site_booked_count=booked,
         site_capacity_cap=site.capacity_cap,
+        resource_kind=resource.kind,
+        user_overlapping_desk=overlapping_desk,
     )
 
 
@@ -220,6 +242,11 @@ async def create_booking(
         constraint = getattr(getattr(exc.orig, "__cause__", None), "constraint_name", None)
         if constraint == DOUBLE_ALLOCATION_CONSTRAINT or DOUBLE_ALLOCATION_CONSTRAINT in str(exc):
             raise ResourceTaken(resource_id=str(resource_id)) from exc
+        # The same person won a desk for this time in a concurrent request
+        # that rule_one_desk_per_user could not yet see. Same denial as the
+        # rule, so every client says it the same way.
+        if constraint == ONE_DESK_PER_USER_CONSTRAINT or ONE_DESK_PER_USER_CONSTRAINT in str(exc):
+            raise PolicyDenied(denials=[one_desk_denial().as_dict()]) from exc
         raise
     return booking
 

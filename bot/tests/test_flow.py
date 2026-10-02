@@ -131,6 +131,16 @@ def test_policy_denials_use_their_params():
     assert e.explain() == "You can book up to 14 days ahead."
 
 
+def test_a_second_desk_is_explained_with_or_without_its_name():
+    """The rule names the desk; the constraint, catching a concurrent request,
+    cannot. Both must read as a sentence, not as "Booking refused"."""
+    e = ApiError(409, "POLICY_DENIED", denials=[
+        {"code": "ALREADY_HAVE_DESK", "params": {"desk": "5F-N-03"}}])
+    assert e.explain() == "You already have a desk booked for that time."
+    e = ApiError(409, "POLICY_DENIED", denials=[{"code": "ALREADY_HAVE_DESK", "params": {}}])
+    assert e.explain() == "You already have a desk booked for that time."
+
+
 def test_unknown_code_falls_back_to_detail_then_generic():
     assert ApiError(400, "WHATEVER", detail="nope").explain() == "nope"
     assert ApiError(400, "WHATEVER").explain() == "That booking isn't allowed."

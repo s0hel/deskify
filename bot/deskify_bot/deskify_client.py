@@ -23,6 +23,10 @@ DENIAL_TEXT: dict[str, str] = {
     "RESOURCE_UNAVAILABLE": "That desk is out of service.",
     "ZONE_RESTRICTED": "That area is reserved for another team.",
     "DESK_ASSIGNED": "That desk belongs to someone else.",
+    # No {desk}: a refusal caught by the database constraint (a concurrent
+    # request) arrives without one, and str.format would fall back to "Booking
+    # refused".
+    "ALREADY_HAVE_DESK": "You already have a desk booked for that time.",
     "BOOKING_HORIZON_EXCEEDED": "You can book up to {limit_days} days ahead.",
     "MAX_FUTURE_BOOKINGS": "You already have {limit} upcoming bookings.",
     "BOOKING_RELEASED": "That booking was released because it wasn't checked into.",

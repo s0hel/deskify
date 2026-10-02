@@ -569,6 +569,27 @@ async def test_an_override_still_cannot_double_book_a_desk(db, client):
     assert resp.json()["code"] == "RESOURCE_TAKEN"
 
 
+async def test_an_override_still_cannot_give_someone_a_second_desk(db, client):
+    """booking_one_desk_per_user is not a preference either."""
+    fx = await make_org(db, "Acme", desks=2)
+    await grant_role(db, fx, fx["user"], "org_admin")
+    ren = await add_person(db, fx, "Ren")
+    on = TODAY + timedelta(days=1)
+    await book_for(db, fx, ren, on, desk_index=0)
+
+    async with client as c:
+        resp = await c.post(
+            "/bookings/admin", headers=auth(fx),
+            json={
+                "user_id": str(ren.id), "resource_id": str(fx["desks"][1].id),
+                "on": str(on), "override_policy": True,
+            },
+        )
+
+    assert resp.status_code == 409
+    assert resp.json()["denials"][0]["code"] == "ALREADY_HAVE_DESK"
+
+
 async def test_a_deactivated_user_cannot_be_booked_for(db, client):
     fx = await make_org(db, "Acme")
     await grant_role(db, fx, fx["user"], "org_admin")
@@ -714,13 +735,13 @@ async def add_site_with_desk(db, fx, name: str, tz: str):
     return site, desk
 
 
-async def book_at(db, fx, site, desk, user, on):
+async def book_at(db, fx, site, desk, user, on, until=17):
     booking = Booking(
         organization_id=fx["org"].id, site_id=site.id, resource_id=desk.id,
         user_id=user.id,
         during=Range(
             datetime.combine(on, time(9), tzinfo=ZoneInfo(site.timezone)),
-            datetime.combine(on, time(17), tzinfo=ZoneInfo(site.timezone)),
+            datetime.combine(on, time(until), tzinfo=ZoneInfo(site.timezone)),
             bounds="[)",
         ),
         local_date=on, status="confirmed", created_by=user.id,
@@ -751,13 +772,16 @@ async def test_upcoming_is_measured_in_each_offices_own_timezone(db, client):
     await grant_role(db, fx, fx["user"], "org_admin")
     leaver = await add_person(db, fx, "Ren")
 
+    # The eastern bookings end at 10:00. 09-17 at UTC+14 and 09-17 at UTC-12
+    # on the previous day overlap in real time, and one person cannot hold two
+    # desks at once (booking_one_desk_per_user) -- even 26 hours of offset apart.
     made = {}
-    for label, tz in (("East", FAR_EAST), ("West", FAR_WEST)):
+    for label, tz, until in (("East", FAR_EAST, 10), ("West", FAR_WEST, 17)):
         site, desk = await add_site_with_desk(db, fx, label, tz)
         there = local_today(tz)
-        made[f"{label} today"] = await book_at(db, fx, site, desk, leaver, there)
+        made[f"{label} today"] = await book_at(db, fx, site, desk, leaver, there, until)
         made[f"{label} yesterday"] = await book_at(
-            db, fx, site, desk, leaver, there - timedelta(days=1)
+            db, fx, site, desk, leaver, there - timedelta(days=1), until
         )
 
     leaver_id = leaver.id

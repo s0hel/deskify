@@ -73,10 +73,12 @@ async def test_sign_in_then_read_a_site_then_book_a_desk(db, client):
                         params={"on": "2026-10-02"}, headers=auth)
         assert r.json()["states"][str(fx["desk"].id)] == "mine"
 
-        # 9. booking the same desk again is refused by the constraint
+        # 9. booking the same desk again is refused -- and explained as YOUR
+        #    booking, not as someone else having taken it
         r = await c.post("/bookings", json=payload, headers=auth)
         assert r.status_code == 409
-        assert r.json()["code"] == "RESOURCE_TAKEN"
+        assert r.json()["code"] == "POLICY_DENIED"
+        assert r.json()["denials"][0]["code"] == "ALREADY_HAVE_DESK"
         assert r.headers["content-type"].startswith("application/problem+json")
 
         # 10. cancel, and the slot reopens
@@ -107,3 +109,43 @@ async def test_policy_refusal_is_explainable(db, client):
         assert body["code"] == "POLICY_DENIED"
         assert body["denials"][0]["code"] == "RESOURCE_UNAVAILABLE"
         assert body["denials"][0]["rule_key"] == "resource_status"
+
+
+async def test_a_second_desk_the_same_day_is_refused_over_http(db, client):
+    """The reported bug, as any client sees it: 5F-N-03 then 5F-N-04 for one
+    day. The web UI hides the second tap; the Teams bot does not, so the API
+    has to say no -- in the dry run as well as on the write."""
+    fx = await make_org(db, "Northwind", desks=2)
+    first_desk = fx["desks"][0].name
+    async with client as c:
+        code = (await c.post("/auth/dev-sign-in",
+                             json={"email": fx["user"].email})).json()["code"]
+        token = (await c.post("/auth/token", json={"code": code})).json()["access_token"]
+        auth = {"Authorization": f"Bearer {token}"}
+
+        first, second = (
+            {"resource_id": str(d.id), "on": "2026-10-02", "slot": "day"} for d in fx["desks"]
+        )
+        assert (await c.post("/bookings", json=first, headers=auth)).status_code == 201
+
+        r = await c.post("/bookings/validate", json=second, headers=auth)
+        assert r.json()["allowed"] is False
+        assert r.json()["denials"][0]["code"] == "ALREADY_HAVE_DESK"
+
+        r = await c.post("/bookings", json=second, headers=auth)
+        assert r.status_code == 409
+        denial = r.json()["denials"][0]
+        assert denial["code"] == "ALREADY_HAVE_DESK"
+        assert denial["params"] == {"desk": first_desk}
+
+        # A whole day overlaps both halves, so the afternoon is refused too.
+        r = await c.post("/bookings", json={**second, "slot": "pm"}, headers=auth)
+        assert r.status_code == 409
+
+        # Cancel the whole day, take a morning, and the afternoon elsewhere is fine.
+        mine = (await c.get("/bookings", headers=auth)).json()
+        assert (await c.delete(f"/bookings/{mine[0]['id']}", headers=auth)).status_code == 204
+        assert (await c.post("/bookings", json={**first, "slot": "am"},
+                             headers=auth)).status_code == 201
+        assert (await c.post("/bookings", json={**second, "slot": "pm"},
+                             headers=auth)).status_code == 201
