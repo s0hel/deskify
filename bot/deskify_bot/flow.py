@@ -7,6 +7,7 @@ what comes back.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -15,12 +16,15 @@ from microsoft_teams.cards import AdaptiveCard
 
 from deskify_bot import cards
 from deskify_bot.config import BotSettings
-from deskify_bot.deskify_client import ApiError, DeskifyClient
+from deskify_bot.deskify_client import ApiError, DeskifyClient, free_desks
+
+#: (floor_id, day) -> a URL the Teams client can load the floor picture from.
+PlanUrl = Callable[[str, date], str]
 
 
 async def handle(
     data: dict[str, Any], token: str, client: DeskifyClient, settings: BotSettings,
-    today: date | None = None,
+    today: date | None = None, plan_url: PlanUrl | None = None,
 ) -> AdaptiveCard:
     action = data.get("action")
     try:
@@ -42,14 +46,24 @@ async def handle(
 
         if action == "book.desks":
             on = date.fromisoformat(data["on"])
-            desks = await client.free_desks(token, data["floor_id"], on)
-            return cards.pick_desk(data["site_id"], data.get("floor_name", "Floor"), on, desks,
-                                   settings.max_desks_shown)
+            floor = await client.floor(token, data["floor_id"])
+            desks = free_desks(floor, await client.floor_states(token, floor["id"], on))
+            image = plan_url(floor["id"], on) if plan_url and floor.get("plan_asset_key") else None
+            return cards.pick_desk(data["site_id"], floor, on, desks, image)
 
         if action == "book.confirm":
             on = date.fromisoformat(data["on"])
+            if not data.get("resource_id"):
+                # The dropdown is required, but a client that skips input
+                # validation would otherwise send a booking for "".
+                return cards.refused("Pick a desk first.")
             await client.book(token, data["resource_id"], on)
-            return cards.booked(data.get("desk_name", "Your desk"), on)
+            name = data.get("desk_name")
+            if not name and data.get("floor_id"):
+                floor = await client.floor(token, data["floor_id"])
+                name = next((r["name"] for r in floor["resources"]
+                             if r["id"] == data["resource_id"]), None)
+            return cards.booked(name or "Your desk", on)
 
         if action == "bookings.list":
             return await _bookings(token, client)

@@ -60,12 +60,47 @@ async def test_floor_buttons_carry_the_whole_state(client, settings):
                             "floor_name": "5F", "on": "2026-10-02"}
 
 
+def choices(card, input_id: str) -> list[str]:
+    field = next(e for e in dump(card)["body"] if e.get("id") == input_id)
+    return [c["title"] for c in field["choices"]]
+
+
+DESKS = {"action": "book.desks", "site_id": "s-tampa", "floor_id": "f5", "on": "2026-10-02"}
+
+
 async def test_desks_are_free_desks_only_sorted_by_name(client, settings, api):
     api.taken.add("d1")
-    card = await run({"action": "book.desks", "site_id": "s-tampa", "floor_id": "f5",
-                      "floor_name": "5F", "on": "2026-10-02"}, client, settings)
-    names = [b["title"] for b in buttons(card) if b["data"]["action"] == "book.confirm"]
-    assert names == ["5F-N-02"]  # d1 is booked, r1 is a room
+    card = await run(DESKS, client, settings)
+    assert choices(card, "resource_id") == ["5F-N-02"]  # d1 is booked, r1 is a room
+
+
+async def test_desk_card_shows_the_plan_when_it_can(client, settings):
+    card = await run(DESKS, client, settings,
+                     plan_url=lambda floor_id, on: f"http://bot/floor/{floor_id}.png?on={on}")
+    image = next(e for e in dump(card)["body"] if e["type"] == "Image")
+    assert image["url"] == "http://bot/floor/f5.png?on=2026-10-02"
+    # Tapping enlarges: at card width the labels are too small to read.
+    assert image["selectAction"]["url"] == image["url"]
+
+
+async def test_desk_card_without_a_plan_is_just_the_list(client, settings):
+    card = await run(DESKS, client, settings)
+    assert not [e for e in dump(card)["body"] if e["type"] == "Image"]
+    assert choices(card, "resource_id") == ["5F-N-01", "5F-N-02"]
+
+
+async def test_booking_from_the_dropdown_names_the_desk(client, settings):
+    """The dropdown sends only an id; the confirmation still says which desk."""
+    card = await run({"action": "book.confirm", "resource_id": "d2", "floor_id": "f5",
+                      "on": "2026-10-02"}, client, settings)
+    assert "5F-N-02" in text(card)
+
+
+async def test_confirm_with_nothing_picked_books_nothing(client, settings, api):
+    card = await run({"action": "book.confirm", "resource_id": "", "floor_id": "f5",
+                      "on": "2026-10-02"}, client, settings)
+    assert "Pick a desk first." in text(card)
+    assert api.bookings == []
 
 
 async def test_book_then_list_then_cancel(client, settings, api):

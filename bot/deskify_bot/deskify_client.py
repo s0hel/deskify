@@ -49,6 +49,12 @@ class ApiError(Exception):
         return self.detail or "That booking isn't allowed."
 
 
+def free_desks(floor: dict, states: dict[str, str]) -> list[dict]:
+    desks = [r for r in floor["resources"]
+             if r["kind"] == "desk" and states.get(r["id"]) == "free"]
+    return sorted(desks, key=lambda r: r["name"])
+
+
 class DeskifyClient:
     def __init__(self, base_url: str, http: httpx.AsyncClient | None = None):
         self._http = http or httpx.AsyncClient(base_url=base_url, timeout=10.0)
@@ -93,18 +99,20 @@ class DeskifyClient:
             "GET", f"/sites/{site_id}/floors", token, params={"on": on.isoformat()}
         )
 
-    async def free_desks(self, token: str, floor_id: str, on: date) -> list[dict]:
-        """Desks on a floor that this user can book on `on`, by name."""
-        floor = await self._call("GET", f"/floors/{floor_id}", token)
+    async def floor(self, token: str, floor_id: str) -> dict:
+        return await self._call("GET", f"/floors/{floor_id}", token)
+
+    async def floor_states(self, token: str, floor_id: str, on: date) -> dict[str, str]:
         state = await self._call(
             "GET", f"/floors/{floor_id}/state", token, params={"on": on.isoformat()}
         )
-        states = state["states"]
-        desks = [
-            r for r in floor["resources"]
-            if r["kind"] == "desk" and states.get(r["id"]) == "free"
-        ]
-        return sorted(desks, key=lambda r: r["name"])
+        return state["states"]
+
+    async def free_desks(self, token: str, floor_id: str, on: date) -> list[dict]:
+        """Desks on a floor that this user can book on `on`, by name."""
+        floor = await self.floor(token, floor_id)
+        states = await self.floor_states(token, floor_id, on)
+        return free_desks(floor, states)
 
     async def bookings(self, token: str) -> list[dict]:
         return await self._call("GET", "/bookings", token)

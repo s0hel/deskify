@@ -520,6 +520,17 @@ a Teams user someone else, set `DESKIFY_BOT_USER_MAP` on the bot to
 an **empty** database, so bookings survive restarts and match what `make web`
 shows.
 
+**The floor picture.** The "pick a desk" card shows the floor as a PNG. It's the same
+drawing the app uses (`client/public/plans/`), with free desks in green and labelled,
+yours ringed in blue, and taken ones grey. A dropdown below it lists every free desk.
+The picture is a map, not a picker: a card can't tell *where* on an image someone
+tapped, so tapping only opens the plan full size. The bot serves the image itself at
+`/floor/<id>.png`, from the same host as `/api/messages`. The Teams *client* loads
+it with no credentials, so every link is HMAC-signed for one floor, one day and one
+user, and expires after 30 minutes. In real Teams, set `DESKIFY_BOT_PUBLIC_URL` to
+the bot's public HTTPS origin. Set `DESKIFY_PLANS` to the web app's origin if the
+drawings aren't mounted.
+
 Three things that cost an afternoon to find:
 
 - The Playground CLI exits 1 **with no message** in a container, right after printing

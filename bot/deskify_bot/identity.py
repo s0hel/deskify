@@ -44,7 +44,10 @@ class Identity:
         return self._settings.default_email
 
     async def token_for(self, aad_object_id: str | None, teams_id: str | None) -> str:
-        email = self.email_for(aad_object_id, teams_id)
+        return await self.token_for_email(self.email_for(aad_object_id, teams_id))
+
+    async def token_for_email(self, email: str) -> str:
+        """For the image endpoint, where the caller is a signed link, not a Teams user."""
         cached = self._tokens.get(email)
         if cached and cached.expires_at > self._clock():
             return cached.token

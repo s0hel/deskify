@@ -92,24 +92,39 @@ def pick_floor(site: dict, on: date, floors: list[dict]) -> AdaptiveCard:
     return _card(body, [_button("Back", "book.start")])
 
 
-def pick_desk(site_id: str, floor_name: str, on: date, desks: list[dict], limit: int) -> AdaptiveCard:
-    body = [_text(f"{floor_name} · {_label(on)}", size="Medium", weight="Bolder")]
+def pick_desk(
+    site_id: str, floor: dict, on: date, desks: list[dict], image_url: str | None = None
+) -> AdaptiveCard:
+    """The floor as a picture, and every free desk in one dropdown.
+
+    The picture is a map, not a picker: a card cannot tell where on an image
+    someone tapped (see floorplan.py). Its labels drop the floor prefix, so
+    "N-03" on the plan is "5F-N-03" in the list.
+    """
+    back = [_button("Other floors", "book.floors", site_id=site_id, on=on.isoformat()),
+            _button("Back", "menu")]
+    body = [_text(f"{floor['name']} · {_label(on)}", size="Medium", weight="Bolder")]
     if not desks:
         body.append(_text("Nothing free on this floor any more."))
-    else:
-        shown = desks[:limit]
-        more = len(desks) - len(shown)
-        body.append(_text("Pick a desk." + (f" ({more} more free on this floor.)" if more else "")))
+        return _card(body, back)
+    if image_url:
         body.append({
-            "type": "ActionSet",
-            "actions": [
-                _button(d["name"], "book.confirm", resource_id=d["id"], desk_name=d["name"],
-                        on=on.isoformat())
-                for d in shown
-            ],
+            "type": "Image", "url": image_url, "size": "Stretch",
+            "altText": f"Plan of {floor['name']}; free desks are green and labelled.",
+            # The whole floor at card width is an overview; tapping opens it
+            # full size, where the desk labels are readable.
+            "selectAction": {"type": "Action.OpenUrl", "url": image_url, "title": "Open plan"},
         })
-    return _card(body, [_button("Other floors", "book.floors", site_id=site_id, on=on.isoformat()),
-                        _button("Back", "menu")])
+        body.append(_text("🟢 free · 🔵 yours · ⚪ taken — tap the plan to enlarge",
+                          size="Small", isSubtle=True, spacing="Small"))
+    body.append({
+        "type": "Input.ChoiceSet", "id": "resource_id", "label": f"{len(desks)} free desks",
+        "style": "compact", "isRequired": True, "errorMessage": "Pick a desk",
+        "choices": [{"title": d["name"], "value": d["id"]} for d in desks],
+        "value": desks[0]["id"],
+    })
+    book = _button("Book", "book.confirm", "positive", on=on.isoformat(), floor_id=floor["id"])
+    return _card(body, [book, *back])
 
 
 def booked(desk_name: str, on: date) -> AdaptiveCard:

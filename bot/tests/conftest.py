@@ -52,11 +52,13 @@ class FakeApi:
         if path in ("/sites/s-berlin/floors",):
             return httpx.Response(200, json=[])
         if path == "/floors/f5":
-            return httpx.Response(200, json={"id": "f5", "name": "5F", "resources": [
-                {"id": "d2", "kind": "desk", "name": "5F-N-02"},
-                {"id": "d1", "kind": "desk", "name": "5F-N-01"},
-                {"id": "r1", "kind": "room", "name": "Huddle"},
-            ]})
+            return httpx.Response(200, json={
+                "id": "f5", "name": "5F", "plan_asset_key": "tampa-5f",
+                "plan_width": 1900, "plan_height": 730, "resources": [
+                    {"id": "d2", "kind": "desk", "name": "5F-N-02", "plan_x": 188.0, "plan_y": 166.0},
+                    {"id": "d1", "kind": "desk", "name": "5F-N-01", "plan_x": 124.0, "plan_y": 166.0},
+                    {"id": "r1", "kind": "room", "name": "Huddle", "plan_x": 400.0, "plan_y": 70.0},
+                ]})
         if path == "/floors/f5/state":
             return httpx.Response(200, json={"date": request.url.params["on"], "states": {
                 "d1": "booked" if "d1" in self.taken else "free",
