@@ -86,10 +86,41 @@ class Room:
         return self.capacity > 0
 
 
+#: A zone label's baseline sits this far outside the dashed box, above it or
+#: below it. Closer, and the 15px caps touch the dash.
+ZONE_LABEL_GAP = 10
+
+#: Generous per-character width for the 15px bold, letter-spaced uppercase zone
+#: label. Used to keep labels clear of the drawing (tests/test_floorplans.py),
+#: so it errs wide: a label that fits by this measure fits on screen.
+ZONE_LABEL_CHAR_W = 12.5
+ZONE_LABEL_CAP_H = 14
+
+
 @dataclass(frozen=True)
 class Zone:
     name: str
     rect: Rect
+    #: Where the name goes. "above" unless something already sits there: on a
+    #: spine floor the meeting rooms overlap the north zone's top edge, and a
+    #: label above it is drawn underneath them. Moving the rooms instead would
+    #: move their circles, and those coordinates are already in the database
+    #: (app/seed.py copies them from here).
+    label: str = "above"
+
+    @property
+    def label_baseline(self) -> float:
+        if self.label == "below":
+            return self.rect.bottom + ZONE_LABEL_GAP + ZONE_LABEL_CAP_H
+        return self.rect.y - ZONE_LABEL_GAP
+
+    @property
+    def label_rect(self) -> Rect:
+        """The box the label occupies (caps plus a little descent), for the
+        overlap test. The text is drawn from x + 6, as plans.py does."""
+        top = self.label_baseline - ZONE_LABEL_CAP_H
+        return Rect(self.rect.x + 6, top, len(self.name) * ZONE_LABEL_CHAR_W,
+                    ZONE_LABEL_CAP_H + 4)
 
 
 @dataclass
@@ -342,7 +373,9 @@ def spine_floor(
     ]
 
     zones = [
-        Zone("Engineering", Rect(margin_x - 18, margin_y - 30, desk_area_w + 36, pod_h + 44)),
+        # Below, into the spine: the meeting rooms sit over this zone's top edge.
+        Zone("Engineering", Rect(margin_x - 18, margin_y - 30, desk_area_w + 36, pod_h + 44),
+             label="below"),
         Zone(
             "Design",
             Rect(margin_x - 18, margin_y + pod_h + spine_h - 14, desk_area_w + 36, pod_h + 44),

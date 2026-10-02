@@ -36,7 +36,7 @@
 </g>
 <g class="zones">
 <rect class="zone" x="72" y="98" width="1756" height="196" rx="14"/>
-<text class="zlabel" x="78" y="88" text-anchor="start">Engineering</text>
+<text class="zlabel" x="78" y="318" text-anchor="start">Engineering</text>
 <rect class="zone" x="72" y="374" width="1756" height="196" rx="14"/>
 <text class="zlabel" x="78" y="364" text-anchor="start">Design</text>
 </g>

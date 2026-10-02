@@ -113,9 +113,10 @@ def render(plan: FloorPlan) -> str:
         parts.append('<g class="zones">')
         for zone in plan.zones:
             parts.append(_rect(zone.rect, "zone", rx=14))
-            # Above the dashed box, not inside it: a 15px label set 22px below
-            # the top edge sits ON the dash and gets cut by it.
-            parts.append(_text(zone.rect.x + 6, zone.rect.y - 10, "zlabel", zone.name, "start"))
+            # Outside the dashed box, not inside it: a 15px label set 22px below
+            # the top edge sits ON the dash and gets cut by it. Above, unless
+            # the zone says below (app/floorplans.py Zone.label).
+            parts.append(_text(zone.rect.x + 6, zone.label_baseline, "zlabel", zone.name, "start"))
         parts.append("</g>")
 
     parts.append('<g class="rooms">')

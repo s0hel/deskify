@@ -94,6 +94,27 @@ def test_every_desk_belongs_to_a_zone_the_floor_declares(floor: FloorPlan):
     assert used <= declared, f"{floor.key}: desks in undeclared zones {used - declared}"
 
 
+def _overlaps(a, b) -> bool:
+    return a.x < b.right and b.x < a.right and a.y < b.bottom and b.y < a.bottom
+
+
+@pytest.mark.parametrize("floor", ALL, ids=IDS)
+def test_every_zone_label_is_clear_of_the_drawing(floor: FloorPlan):
+    """Rooms are drawn after zones, so a label under a room is not
+    overlapped, it is HIDDEN -- Tampa 5F read "E" for Engineering for months.
+    Also off the plate, and clear of other zones' boxes and labels."""
+    for zone in floor.zones:
+        label = zone.label_rect
+        under = [r.name for r in floor.rooms if _overlaps(label, r.rect)]
+        under += [f"bench@{b.x:.0f},{b.y:.0f}" for b in floor.benches if _overlaps(label, b)]
+        under += [z.name for z in floor.zones
+                  if z is not zone and (_overlaps(label, z.rect) or _overlaps(label, z.label_rect))]
+        assert not under, f"{floor.key}: the {zone.name} label is under {under}"
+        assert inside(label.x, label.y, floor) and inside(label.right, label.bottom, floor), (
+            f"{floor.key}: the {zone.name} label is off the floorplate"
+        )
+
+
 @pytest.mark.parametrize("floor", ALL, ids=IDS)
 def test_the_committed_drawing_matches_the_generator(floor: FloorPlan):
     """The SVGs are committed so a clean checkout builds without Python. That
