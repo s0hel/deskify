@@ -51,6 +51,10 @@ export interface FloorPlanProps {
 }
 
 const DESK_R = 16;
+
+/** Movement, in px, within which a press still counts as a tap. Fingers
+ *  wobble; 8px is the usual allowance and well under a desk's diameter. */
+const TAP_SLOP_PX = 8;
 const ROOM_R = 26;
 
 export function FloorPlan({
@@ -68,6 +72,10 @@ export function FloorPlan({
   const gesture = useRef<Transform>({ ...IDENTITY });
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinchStart = useRef<{ dist: number; k: number } | null>(null);
+  // How far the pointer(s) have travelled since the gesture began. A tap that
+  // wobbles a few px is still a tap; anything further was a pan or a pinch,
+  // and the click the browser fires when it ends must not select a desk.
+  const travel = useRef(0);
 
   const plan = useMemo<Size>(
     () => ({ w: planWidth, h: planHeight }),
@@ -152,6 +160,7 @@ export function FloorPlan({
   }, [focusResourceId, desks, plan, size]);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
+    if (pointers.current.size === 0) travel.current = 0; // a new gesture
     (e.target as Element).setPointerCapture?.(e.pointerId);
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (wrapper.current) wrapper.current.style.willChange = "transform";
@@ -169,6 +178,7 @@ export function FloorPlan({
       if (!pointers.current.has(e.pointerId)) return;
       const prev = pointers.current.get(e.pointerId)!;
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      travel.current += Math.hypot(e.clientX - prev.x, e.clientY - prev.y);
 
       if (pointers.current.size === 2 && pinchStart.current) {
         const [a, b] = [...pointers.current.values()];
@@ -252,6 +262,10 @@ export function FloorPlan({
   // -- Rule 5: one delegated listener for all 300 nodes. ----------------------
   const onClick = useCallback(
     (e: React.MouseEvent) => {
+      // The browser still fires a click at the end of a drag -- and because
+      // pointerdown captures the pointer, it lands on whatever desk the drag
+      // STARTED on. Panning the plan opened that desk's booking sheet.
+      if (travel.current > TAP_SLOP_PX) return;
       const id = (e.target as Element).getAttribute?.("data-resource-id");
       if (id) onSelect?.(id);
     },

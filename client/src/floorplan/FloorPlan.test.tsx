@@ -4,10 +4,24 @@
  * shows up on a real device (risk R8).
  */
 
-import { render } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { FloorPlan, type Desk, type DeskState } from "./FloorPlan";
+
+// jsdom has no PointerEvent, so testing-library falls back to a bare Event
+// and every clientX is undefined -- a drag would measure as no movement at all.
+// A MouseEvent carries the coordinates; that is all the gesture code reads.
+if (typeof window.PointerEvent === "undefined") {
+  class PointerEventShim extends MouseEvent {
+    pointerId: number;
+    constructor(type: string, init: PointerEventInit = {}) {
+      super(type, init);
+      this.pointerId = init.pointerId ?? 0;
+    }
+  }
+  window.PointerEvent = PointerEventShim as unknown as typeof PointerEvent;
+}
 
 function desks(n: number): Desk[] {
   return Array.from({ length: n }, (_, i) => ({
@@ -69,6 +83,44 @@ describe("FloorPlan", () => {
     const node = container.querySelector('.desks [data-resource-id="d3"]')! as SVGCircleElement;
     node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onSelect).toHaveBeenCalledWith("d3");
+  });
+
+  it("does not select the desk a drag started on", () => {
+    // Pointer capture sends the end-of-drag click to the desk under the
+    // pointer at the START, so panning used to open its booking sheet.
+    const onSelect = vi.fn();
+    const { container } = render(<FloorPlan {...props(5)} onSelect={onSelect} />);
+    const node = container.querySelector('.desks [data-resource-id="d3"]')!;
+    fireEvent.pointerDown(node, { pointerId: 1, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(node, { pointerId: 1, clientX: 160, clientY: 140 });
+    fireEvent.pointerUp(node, { pointerId: 1, clientX: 160, clientY: 140 });
+    fireEvent.click(node);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("still selects on a tap that wobbles a few pixels", () => {
+    const onSelect = vi.fn();
+    const { container } = render(<FloorPlan {...props(5)} onSelect={onSelect} />);
+    const node = container.querySelector('.desks [data-resource-id="d3"]')!;
+    fireEvent.pointerDown(node, { pointerId: 1, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(node, { pointerId: 1, clientX: 103, clientY: 102 });
+    fireEvent.pointerUp(node, { pointerId: 1, clientX: 103, clientY: 102 });
+    fireEvent.click(node);
+    expect(onSelect).toHaveBeenCalledWith("d3");
+  });
+
+  it("selects on the next tap after a drag", () => {
+    const onSelect = vi.fn();
+    const { container } = render(<FloorPlan {...props(5)} onSelect={onSelect} />);
+    const node = container.querySelector('.desks [data-resource-id="d3"]')!;
+    fireEvent.pointerDown(node, { pointerId: 1, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(node, { pointerId: 1, clientX: 200, clientY: 100 });
+    fireEvent.pointerUp(node, { pointerId: 1, clientX: 200, clientY: 100 });
+    fireEvent.click(node);
+    fireEvent.pointerDown(node, { pointerId: 2, clientX: 50, clientY: 50 });
+    fireEvent.pointerUp(node, { pointerId: 2, clientX: 50, clientY: 50 });
+    fireEvent.click(node);
+    expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
   it("sets touch-action none so the browser does not fight the gesture", () => {
