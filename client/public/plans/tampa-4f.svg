@@ -1,100 +1,1634 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2424 1558" width="2424" height="1558">
 <style>
-  .slab   { fill: #f6f9fc; }
-  .void   { fill: #e2eaf4; }
-  .wall   { fill: none; stroke: #37435a; stroke-width: 7; stroke-linejoin: round; }
-  .bench  { fill: #e1e9f3; stroke: #cfdae8; stroke-width: 2; }
-  .room   { fill: #e2ecfb; stroke: #bed2ee; stroke-width: 3; }
-  .room--core  { fill: #dde4ee; stroke: #c6d0de; }
-  .room--wc    { fill: #dde4ee; stroke: #c6d0de; }
-  .room--cafe  { fill: #f6ecdb; stroke: #e2d0b3; }
-  .room--collab{ fill: #ddefe7; stroke: #bfdccf; }
-  .room--focus { fill: #e2ecfb; stroke: #bed2ee; }
-  .zone   { fill: none; stroke: #aebbcd; stroke-width: 2; stroke-dasharray: 10 9; }
-  .rlabel { fill: #5c6675; font: 600 19px system-ui, sans-serif; }
-  .zlabel { fill: #8794a8; font: 700 15px system-ui, sans-serif;
+  .slab   { fill: #f4efe7; }
+  .tiles  { fill: none; stroke: #ebe4d8; stroke-width: 1; }
+  .carpet { fill: #eee7dc; }
+  .void   { fill: #dfe6ee; }
+  .rail   { fill: none; stroke: #9fc4e6; stroke-width: 4; }
+  .wall   { fill: none; stroke: #2f3747; stroke-width: 14; stroke-linecap: square; }
+  .glass  { fill: none; stroke: #b9d6ef; stroke-width: 6; }
+  .glass-in { fill: none; stroke: #6f9cc6; stroke-width: 1.5; }
+  .column { fill: #2f3747; }
+  .part   { fill: none; stroke: #4a5468; stroke-width: 5; stroke-linecap: square; }
+  .part-glass { fill: none; stroke: #8db6dc; stroke-width: 4; }
+  .door   { fill: none; stroke: #4a5468; stroke-width: 1.5; }
+  .swing  { fill: none; stroke: #8b94a3; stroke-width: 1.2; stroke-dasharray: 4 3; }
+  .room--meeting    { fill: #f8eac0; }
+  .room--conference { fill: #dcecd6; }
+  .room--focus      { fill: #e6def2; }
+  .room--cafe       { fill: #f6d9c2; }
+  .room--collab     { fill: #efe5cf; }
+  .room--core       { fill: #d9dde4; }
+  .room--wc         { fill: #d5e6f4; }
+  .desktop  { fill: #ffffff; stroke: #cdc5b8; stroke-width: 1.2; }
+  .screen   { fill: #c9c1b3; }
+  .monitor  { fill: #39414f; }
+  .chair    { fill: #75849b; }
+  .chair-back { fill: #56647a; }
+  .table    { fill: #c89f72; stroke: #a7805a; stroke-width: 1.5; }
+  .counter  { fill: #e3ddd2; stroke: #b9b1a3; stroke-width: 1.2; }
+  .appliance{ fill: #c6ced8; stroke: #8e98a6; stroke-width: 1.2; }
+  .hob      { fill: none; stroke: #3a3f48; stroke-width: 1.5; }
+  .sofa     { fill: #8f97a3; stroke: #747c88; stroke-width: 1.2; }
+  .rug      { fill: #e4d3b6; }
+  .lift     { fill: #c4cad3; stroke: #4a5468; stroke-width: 1.5; }
+  .lift-x   { fill: none; stroke: #7d8696; stroke-width: 1.2; }
+  .tread    { fill: none; stroke: #9aa3b1; stroke-width: 1.2; }
+  .fixture  { fill: #ffffff; stroke: #8e98a6; stroke-width: 1.2; }
+  .stall    { fill: none; stroke: #8e98a6; stroke-width: 2; }
+  .leaf     { fill: #5a9e5f; }
+  .leaf-dk  { fill: #3f7f48; }
+  .pot      { fill: #bca88d; }
+  .pill     { fill: #ffffff; fill-opacity: 0.88; }
+  .rlabel { fill: #4a5262; font: 600 17px system-ui, sans-serif; }
+  .zlabel { fill: #7d8798; font: 700 15px system-ui, sans-serif;
             letter-spacing: 1.4px; text-transform: uppercase; }
 
   @media (prefers-color-scheme: dark) {
-    .slab   { fill: #141a26; }
-    .void   { fill: #0a0e17; }
-    .wall   { stroke: #6d7b92; }
-    .bench  { fill: #1e2533; stroke: #29313f; }
-    .room   { fill: #1d2738; stroke: #2e3b52; }
-    .room--core  { fill: #191f2b; stroke: #29313f; }
-    .room--wc    { fill: #191f2b; stroke: #29313f; }
-    .room--cafe  { fill: #2a2318; stroke: #3d3323; }
-    .room--collab{ fill: #14251f; stroke: #20372c; }
-    .room--focus { fill: #1d2738; stroke: #2e3b52; }
-    .zone   { stroke: #3a465a; }
-    .rlabel { fill: #97a3b6; }
+    .slab   { fill: #151b26; }
+    .tiles  { stroke: #1b2230; }
+    .carpet { fill: #19202c; }
+    .void   { fill: #0a0e16; }
+    .rail   { stroke: #34587a; }
+    .wall   { stroke: #8492a8; }
+    .glass  { stroke: #2c4a66; }
+    .glass-in { stroke: #4f7aa3; }
+    .column { fill: #8492a8; }
+    .part   { stroke: #5d6a80; }
+    .part-glass { stroke: #3d6488; }
+    .door   { stroke: #6d7a90; }
+    .swing  { stroke: #4b5568; }
+    .room--meeting    { fill: #2c2717; }
+    .room--conference { fill: #18271a; }
+    .room--focus      { fill: #231f30; }
+    .room--cafe       { fill: #2e2119; }
+    .room--collab     { fill: #262217; }
+    .room--core       { fill: #1c212b; }
+    .room--wc         { fill: #172433; }
+    .desktop  { fill: #2a3242; stroke: #384256; }
+    .screen   { fill: #3a4354; }
+    .monitor  { fill: #0c1018; }
+    .chair    { fill: #4a5568; }
+    .chair-back { fill: #3a4455; }
+    .table    { fill: #5c4630; stroke: #6f5639; }
+    .counter  { fill: #2b3240; stroke: #3c4558; }
+    .appliance{ fill: #2f3746; stroke: #4b5568; }
+    .hob      { stroke: #8a94a6; }
+    .sofa     { fill: #3c4454; stroke: #4b5466; }
+    .rug      { fill: #2e2a22; }
+    .lift     { fill: #262c38; stroke: #5d6a80; }
+    .lift-x   { stroke: #4b5568; }
+    .tread    { stroke: #3c4558; }
+    .fixture  { fill: #2a3242; stroke: #4b5568; }
+    .stall    { stroke: #4b5568; }
+    .leaf     { fill: #3c7343; }
+    .leaf-dk  { fill: #2c5a33; }
+    .pot      { fill: #5b4f40; }
+    .pill     { fill: #151b26; }
+    .rlabel { fill: #a3aec0; }
     .zlabel { fill: #6b7890; }
   }
 </style>
+<defs>
+<g id="chair"><rect class="chair" x="-11" y="-9" width="22" height="19" rx="6"/><rect class="chair-back" x="-12" y="-13" width="24" height="7" rx="3.5"/></g>
+<g id="plant"><circle class="pot" r="9"/><ellipse class="leaf" cx="0" cy="-8" rx="5" ry="10"/><ellipse class="leaf" cx="0" cy="-8" rx="5" ry="10" transform="rotate(72)"/><ellipse class="leaf" cx="0" cy="-8" rx="5" ry="10" transform="rotate(144)"/><ellipse class="leaf" cx="0" cy="-8" rx="5" ry="10" transform="rotate(216)"/><ellipse class="leaf" cx="0" cy="-8" rx="5" ry="10" transform="rotate(288)"/><circle class="leaf-dk" r="5"/></g>
+<pattern id="tiles" width="40" height="40" patternUnits="userSpaceOnUse"><path class="tiles" d="M40 0H0V40"/></pattern>
+</defs>
 <g class="plate">
 <rect class="slab" x="0" y="0" width="2424" height="1558"/>
-</g>
-<g class="zones">
-<rect class="zone" x="76" y="156" width="746" height="1306" rx="14"/>
-<text class="zlabel" x="82" y="146" text-anchor="start">Engineering</text>
-<rect class="zone" x="840" y="156" width="364" height="1306" rx="14"/>
-<text class="zlabel" x="846" y="146" text-anchor="start">Design</text>
-<rect class="zone" x="1222" y="156" width="364" height="1306" rx="14"/>
-<text class="zlabel" x="1228" y="146" text-anchor="start">Sales</text>
-<rect class="zone" x="1604" y="156" width="364" height="1306" rx="14"/>
-<text class="zlabel" x="1610" y="146" text-anchor="start">Quiet</text>
+<rect fill="url(#tiles)" x="0" y="0" width="2424" height="1558"/>
+<rect class="carpet" x="76" y="156" width="746" height="1306" rx="14"/>
+<rect class="carpet" x="840" y="156" width="364" height="1306" rx="14"/>
+<rect class="carpet" x="1222" y="156" width="364" height="1306" rx="14"/>
+<rect class="carpet" x="1604" y="156" width="364" height="1306" rx="14"/>
 </g>
 <g class="rooms">
-<rect class="room" x="96" y="34" width="452.5" height="92" rx="8"/>
-<rect class="room" x="562.5" y="34" width="452.5" height="92" rx="8"/>
-<rect class="room" x="1029" y="34" width="452.5" height="92" rx="8"/>
-<rect class="room" x="1495.5" y="34" width="452.5" height="92" rx="8"/>
-<rect class="room room--core" x="1988" y="34" width="340" height="150" rx="8"/>
-<text class="rlabel" x="2158" y="116" text-anchor="middle">Lifts</text>
-<rect class="room room--core" x="1988" y="198" width="163" height="110" rx="8"/>
-<text class="rlabel" x="2069.5" y="260" text-anchor="middle">Stairs</text>
-<rect class="room room--wc" x="2165" y="198" width="163" height="110" rx="8"/>
-<text class="rlabel" x="2246.5" y="260" text-anchor="middle">WC</text>
-<rect class="room room--cafe" x="1988" y="322" width="340" height="210" rx="8"/>
-<text class="rlabel" x="2158" y="434" text-anchor="middle">Kitchen</text>
-<rect class="room room--collab" x="1988" y="546" width="340" height="230" rx="8"/>
-<text class="rlabel" x="2158" y="668" text-anchor="middle">Lounge</text>
-<rect class="room room--focus" x="1988" y="790" width="163" height="96" rx="8"/>
-<rect class="room room--focus" x="2165" y="790" width="163" height="96" rx="8"/>
+<g transform="translate(322.25 80) translate(-226.25 -46)">
+<rect class="room--conference" x="0" y="0" width="452.5" height="92"/>
+<rect class="table" x="89.25" y="30" width="274" height="24" rx="12"/>
+<use href="#chair" transform="translate(116.65 16)"/>
+<use href="#chair" transform="translate(116.65 68) rotate(180)"/>
+<use href="#chair" transform="translate(171.45 16)"/>
+<use href="#chair" transform="translate(171.45 68) rotate(180)"/>
+<use href="#chair" transform="translate(226.25 16)"/>
+<use href="#chair" transform="translate(226.25 68) rotate(180)"/>
+<use href="#chair" transform="translate(281.05 16)"/>
+<use href="#chair" transform="translate(281.05 68) rotate(180)"/>
+<use href="#chair" transform="translate(335.85 16)"/>
+<use href="#chair" transform="translate(335.85 68) rotate(180)"/>
+<use href="#chair" transform="translate(75.25 42) rotate(-90)"/>
+<use href="#chair" transform="translate(377.25 42) rotate(90)"/>
+<path class="part" d="M0 0L452.5 0"/>
+<path class="part" d="M0 0L0 92"/>
+<path class="part" d="M452.5 0L452.5 92"/>
+<path class="part-glass" d="M0 92L400.5 92"/>
+<path class="part-glass" d="M440.5 92L452.5 92"/>
+<path class="door" d="M400.5 92L400.5 52"/>
+<path class="swing" d="M400.5 52A40 40 0 0 1 440.5 92"/>
+</g>
+<g transform="translate(788.75 80) translate(-226.25 -46)">
+<rect class="room--conference" x="0" y="0" width="452.5" height="92"/>
+<rect class="table" x="139.25" y="30" width="174" height="24" rx="12"/>
+<use href="#chair" transform="translate(168.25 16)"/>
+<use href="#chair" transform="translate(168.25 68) rotate(180)"/>
+<use href="#chair" transform="translate(226.25 16)"/>
+<use href="#chair" transform="translate(226.25 68) rotate(180)"/>
+<use href="#chair" transform="translate(284.25 16)"/>
+<use href="#chair" transform="translate(284.25 68) rotate(180)"/>
+<use href="#chair" transform="translate(125.25 42) rotate(-90)"/>
+<use href="#chair" transform="translate(327.25 42) rotate(90)"/>
+<path class="part" d="M0 0L452.5 0"/>
+<path class="part" d="M0 0L0 92"/>
+<path class="part" d="M452.5 0L452.5 92"/>
+<path class="part-glass" d="M0 92L400.5 92"/>
+<path class="part-glass" d="M440.5 92L452.5 92"/>
+<path class="door" d="M400.5 92L400.5 52"/>
+<path class="swing" d="M400.5 52A40 40 0 0 1 440.5 92"/>
+</g>
+<g transform="translate(1255.25 80) translate(-226.25 -46)">
+<rect class="room--meeting" x="0" y="0" width="452.5" height="92"/>
+<rect class="table" x="139.25" y="30" width="174" height="24" rx="12"/>
+<use href="#chair" transform="translate(168.25 16)"/>
+<use href="#chair" transform="translate(168.25 68) rotate(180)"/>
+<use href="#chair" transform="translate(226.25 16)"/>
+<use href="#chair" transform="translate(226.25 68) rotate(180)"/>
+<use href="#chair" transform="translate(284.25 16)"/>
+<use href="#chair" transform="translate(284.25 68) rotate(180)"/>
+<path class="part" d="M0 0L452.5 0"/>
+<path class="part" d="M0 0L0 92"/>
+<path class="part" d="M452.5 0L452.5 92"/>
+<path class="part-glass" d="M0 92L400.5 92"/>
+<path class="part-glass" d="M440.5 92L452.5 92"/>
+<path class="door" d="M400.5 92L400.5 52"/>
+<path class="swing" d="M400.5 52A40 40 0 0 1 440.5 92"/>
+</g>
+<g transform="translate(1721.75 80) translate(-226.25 -46)">
+<rect class="room--meeting" x="0" y="0" width="452.5" height="92"/>
+<rect class="table" x="139.25" y="30" width="174" height="24" rx="12"/>
+<use href="#chair" transform="translate(168.25 16)"/>
+<use href="#chair" transform="translate(168.25 68) rotate(180)"/>
+<use href="#chair" transform="translate(226.25 16)"/>
+<use href="#chair" transform="translate(226.25 68) rotate(180)"/>
+<use href="#chair" transform="translate(284.25 16)"/>
+<use href="#chair" transform="translate(284.25 68) rotate(180)"/>
+<path class="part" d="M0 0L452.5 0"/>
+<path class="part" d="M0 0L0 92"/>
+<path class="part" d="M452.5 0L452.5 92"/>
+<path class="part-glass" d="M0 92L400.5 92"/>
+<path class="part-glass" d="M440.5 92L452.5 92"/>
+<path class="door" d="M400.5 92L400.5 52"/>
+<path class="swing" d="M400.5 52A40 40 0 0 1 440.5 92"/>
+</g>
+<g transform="translate(2158 109) rotate(180) translate(-170 -75)">
+<rect class="room--core" x="0" y="0" width="340" height="150"/>
+<rect class="lift" x="10" y="8" width="56" height="56"/>
+<path class="lift-x" d="M10 8L66 64M66 8L10 64"/>
+<rect class="lift" x="274" y="8" width="56" height="56"/>
+<path class="lift-x" d="M274 8L330 64M330 8L274 64"/>
+<path class="part" d="M0 0L340 0"/>
+<path class="part" d="M0 0L0 150"/>
+<path class="part" d="M340 0L340 150"/>
+<path class="part" d="M0 150L340 150"/>
+</g>
+<g transform="translate(2069.5 253) translate(-81.5 -55)">
+<rect class="room--core" x="0" y="0" width="163" height="110"/>
+<path class="tread" d="M14 8L14 52"/>
+<path class="tread" d="M14 58L14 102"/>
+<path class="tread" d="M25 8L25 52"/>
+<path class="tread" d="M25 58L25 102"/>
+<path class="tread" d="M36 8L36 52"/>
+<path class="tread" d="M36 58L36 102"/>
+<path class="tread" d="M47 8L47 52"/>
+<path class="tread" d="M47 58L47 102"/>
+<path class="tread" d="M58 8L58 52"/>
+<path class="tread" d="M58 58L58 102"/>
+<path class="tread" d="M69 8L69 52"/>
+<path class="tread" d="M69 58L69 102"/>
+<path class="tread" d="M80 8L80 52"/>
+<path class="tread" d="M80 58L80 102"/>
+<path class="tread" d="M91 8L91 52"/>
+<path class="tread" d="M91 58L91 102"/>
+<path class="tread" d="M102 8L102 52"/>
+<path class="tread" d="M102 58L102 102"/>
+<path class="tread" d="M113 8L113 52"/>
+<path class="tread" d="M113 58L113 102"/>
+<path class="tread" d="M124 8L124 52"/>
+<path class="tread" d="M124 58L124 102"/>
+<path class="tread" d="M135 8L135 52"/>
+<path class="tread" d="M135 58L135 102"/>
+<path class="tread" d="M146 8L146 52"/>
+<path class="tread" d="M146 58L146 102"/>
+<path class="stall" d="M8 55L155 55"/>
+<path class="part" d="M0 0L163 0"/>
+<path class="part" d="M0 0L0 110"/>
+<path class="part" d="M163 0L163 110"/>
+<path class="part" d="M0 110L111 110"/>
+<path class="part" d="M151 110L163 110"/>
+<path class="door" d="M111 110L111 70"/>
+<path class="swing" d="M111 70A40 40 0 0 1 151 110"/>
+</g>
+<g transform="translate(2246.5 253) translate(-81.5 -55)">
+<rect class="room--wc" x="0" y="0" width="163" height="110"/>
+<path class="stall" d="M15.5 0L15.5 54"/>
+<ellipse class="fixture" cx="37.5" cy="22.68" rx="9" ry="12"/>
+<path class="stall" d="M59.5 0L59.5 54"/>
+<ellipse class="fixture" cx="81.5" cy="22.68" rx="9" ry="12"/>
+<path class="stall" d="M103.5 0L103.5 54"/>
+<ellipse class="fixture" cx="125.5" cy="22.68" rx="9" ry="12"/>
+<path class="stall" d="M147.5 0L147.5 54"/>
+<path class="stall" d="M15.5 54L147.5 54"/>
+<path class="part" d="M0 0L163 0"/>
+<path class="part" d="M0 0L0 110"/>
+<path class="part" d="M163 0L163 110"/>
+<path class="part" d="M0 110L111 110"/>
+<path class="part" d="M151 110L163 110"/>
+<path class="door" d="M111 110L111 70"/>
+<path class="swing" d="M111 70A40 40 0 0 1 151 110"/>
+</g>
+<g transform="translate(2158 427) translate(-170 -105)">
+<rect class="room--cafe" x="0" y="0" width="340" height="210"/>
+<rect class="counter" x="8" y="8" width="324" height="30" rx="3"/>
+<rect class="appliance" x="74.8" y="13" width="34" height="20" rx="4"/>
+<circle class="hob" cx="170" cy="17" r="5"/>
+<circle class="hob" cx="186" cy="17" r="5"/>
+<circle class="hob" cx="170" cy="29" r="5"/>
+<circle class="hob" cx="186" cy="29" r="5"/>
+<rect class="appliance" x="294" y="8" width="38" height="36" rx="3"/>
+<circle class="table" cx="78" cy="92" r="15"/>
+<use href="#chair" transform="translate(78 66)"/>
+<use href="#chair" transform="translate(78 118) rotate(180)"/>
+<use href="#chair" transform="translate(52 92) rotate(-90)"/>
+<use href="#chair" transform="translate(104 92) rotate(90)"/>
+<circle class="table" cx="170" cy="92" r="15"/>
+<use href="#chair" transform="translate(170 66)"/>
+<use href="#chair" transform="translate(170 118) rotate(180)"/>
+<use href="#chair" transform="translate(144 92) rotate(-90)"/>
+<use href="#chair" transform="translate(196 92) rotate(90)"/>
+<circle class="table" cx="262" cy="92" r="15"/>
+<use href="#chair" transform="translate(262 66)"/>
+<use href="#chair" transform="translate(262 118) rotate(180)"/>
+<use href="#chair" transform="translate(236 92) rotate(-90)"/>
+<use href="#chair" transform="translate(288 92) rotate(90)"/>
+<path class="part" d="M0 0L340 0"/>
+<path class="part" d="M0 0L0 210"/>
+<path class="part" d="M340 0L340 210"/>
+<path class="part" d="M0 210L85 210"/>
+<path class="part" d="M255 210L340 210"/>
+</g>
+<g transform="translate(2158 661) translate(-170 -115)">
+<rect class="room--collab" x="0" y="0" width="340" height="230"/>
+<rect class="rug" x="40.8" y="50.6" width="258.4" height="138" rx="10"/>
+<rect class="sofa" x="68" y="12" width="204" height="34" rx="8"/>
+<rect class="sofa" x="68" y="12" width="204" height="10" rx="5"/>
+<rect class="table" x="136" y="101" width="68" height="30" rx="6"/>
+<rect class="sofa" x="96" y="147" width="28" height="28" rx="7"/>
+<rect class="sofa" x="216" y="147" width="28" height="28" rx="7"/>
+<use href="#plant" transform="translate(22 24)"/>
+<use href="#plant" transform="translate(318 24)"/>
+<path class="part" d="M0 0L340 0"/>
+<path class="part" d="M0 0L0 230"/>
+<path class="part" d="M340 0L340 230"/>
+<path class="part" d="M0 230L85 230"/>
+<path class="part" d="M255 230L340 230"/>
+</g>
+<g transform="translate(2069.5 838) translate(-81.5 -48)">
+<rect class="room--focus" x="0" y="0" width="163" height="96"/>
+<rect class="table" x="56" y="32" width="51" height="24" rx="12"/>
+<use href="#chair" transform="translate(81.5 18)"/>
+<use href="#chair" transform="translate(81.5 70) rotate(180)"/>
+<path class="part" d="M0 0L163 0"/>
+<path class="part" d="M0 0L0 96"/>
+<path class="part" d="M163 0L163 96"/>
+<path class="part-glass" d="M0 96L111 96"/>
+<path class="part-glass" d="M151 96L163 96"/>
+<path class="door" d="M111 96L111 56"/>
+<path class="swing" d="M111 56A40 40 0 0 1 151 96"/>
+</g>
+<g transform="translate(2246.5 838) translate(-81.5 -48)">
+<rect class="room--focus" x="0" y="0" width="163" height="96"/>
+<rect class="table" x="56" y="32" width="51" height="24" rx="12"/>
+<use href="#chair" transform="translate(81.5 18)"/>
+<use href="#chair" transform="translate(81.5 70) rotate(180)"/>
+<path class="part" d="M0 0L163 0"/>
+<path class="part" d="M0 0L0 96"/>
+<path class="part" d="M163 0L163 96"/>
+<path class="part-glass" d="M0 96L111 96"/>
+<path class="part-glass" d="M151 96L163 96"/>
+<path class="door" d="M111 96L111 56"/>
+<path class="swing" d="M111 56A40 40 0 0 1 151 96"/>
+</g>
 </g>
 <g class="benches">
-<rect class="bench" x="96" y="186" width="324" height="152" rx="8"/>
-<rect class="bench" x="96" y="404" width="324" height="152" rx="8"/>
-<rect class="bench" x="96" y="622" width="324" height="152" rx="8"/>
-<rect class="bench" x="96" y="840" width="324" height="152" rx="8"/>
-<rect class="bench" x="96" y="1058" width="324" height="152" rx="8"/>
-<rect class="bench" x="96" y="1276" width="324" height="152" rx="8"/>
-<rect class="bench" x="478" y="186" width="324" height="152" rx="8"/>
-<rect class="bench" x="478" y="404" width="324" height="152" rx="8"/>
-<rect class="bench" x="478" y="622" width="324" height="152" rx="8"/>
-<rect class="bench" x="478" y="840" width="324" height="152" rx="8"/>
-<rect class="bench" x="478" y="1058" width="324" height="152" rx="8"/>
-<rect class="bench" x="478" y="1276" width="324" height="152" rx="8"/>
-<rect class="bench" x="860" y="186" width="324" height="152" rx="8"/>
-<rect class="bench" x="860" y="404" width="324" height="152" rx="8"/>
-<rect class="bench" x="860" y="622" width="324" height="152" rx="8"/>
-<rect class="bench" x="860" y="840" width="324" height="152" rx="8"/>
-<rect class="bench" x="860" y="1058" width="324" height="152" rx="8"/>
-<rect class="bench" x="860" y="1276" width="324" height="152" rx="8"/>
-<rect class="bench" x="1242" y="186" width="324" height="152" rx="8"/>
-<rect class="bench" x="1242" y="404" width="324" height="152" rx="8"/>
-<rect class="bench" x="1242" y="622" width="324" height="152" rx="8"/>
-<rect class="bench" x="1242" y="840" width="324" height="152" rx="8"/>
-<rect class="bench" x="1242" y="1058" width="324" height="152" rx="8"/>
-<rect class="bench" x="1242" y="1276" width="324" height="152" rx="8"/>
-<rect class="bench" x="1624" y="186" width="324" height="152" rx="8"/>
-<rect class="bench" x="1624" y="404" width="324" height="152" rx="8"/>
-<rect class="bench" x="1624" y="622" width="324" height="152" rx="8"/>
-<rect class="bench" x="1624" y="840" width="324" height="152" rx="8"/>
-<rect class="bench" x="1624" y="1058" width="324" height="152" rx="8"/>
-<rect class="bench" x="1624" y="1276" width="324" height="152" rx="8"/>
+<path class="door" d="M102 262L414 262"/>
+<path class="door" d="M102 480L414 480"/>
+<path class="door" d="M102 698L414 698"/>
+<path class="door" d="M102 916L414 916"/>
+<path class="door" d="M102 1134L414 1134"/>
+<path class="door" d="M102 1352L414 1352"/>
+<path class="door" d="M484 262L796 262"/>
+<path class="door" d="M484 480L796 480"/>
+<path class="door" d="M484 698L796 698"/>
+<path class="door" d="M484 916L796 916"/>
+<path class="door" d="M484 1134L796 1134"/>
+<path class="door" d="M484 1352L796 1352"/>
+<path class="door" d="M866 262L1178 262"/>
+<path class="door" d="M866 480L1178 480"/>
+<path class="door" d="M866 698L1178 698"/>
+<path class="door" d="M866 916L1178 916"/>
+<path class="door" d="M866 1134L1178 1134"/>
+<path class="door" d="M866 1352L1178 1352"/>
+<path class="door" d="M1248 262L1560 262"/>
+<path class="door" d="M1248 480L1560 480"/>
+<path class="door" d="M1248 698L1560 698"/>
+<path class="door" d="M1248 916L1560 916"/>
+<path class="door" d="M1248 1134L1560 1134"/>
+<path class="door" d="M1248 1352L1560 1352"/>
+<path class="door" d="M1630 262L1942 262"/>
+<path class="door" d="M1630 480L1942 480"/>
+<path class="door" d="M1630 698L1942 698"/>
+<path class="door" d="M1630 916L1942 916"/>
+<path class="door" d="M1630 1134L1942 1134"/>
+<path class="door" d="M1630 1352L1942 1352"/>
+<rect class="desktop" x="100" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="110" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="132" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(130 194)"/>
+<rect class="desktop" x="164" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="174" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="196" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(194 194)"/>
+<rect class="desktop" x="228" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="238" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="260" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(258 194)"/>
+<rect class="desktop" x="292" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="313" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(322 194)"/>
+<rect class="desktop" x="356" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="366" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="388" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(386 194)"/>
+<rect class="desktop" x="100" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="110" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="132" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(130 330) rotate(180)"/>
+<rect class="desktop" x="164" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="174" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="196" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(194 330) rotate(180)"/>
+<rect class="desktop" x="228" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="249" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(258 330) rotate(180)"/>
+<rect class="desktop" x="292" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="302" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="324" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(322 330) rotate(180)"/>
+<rect class="desktop" x="356" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="366" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="388" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(386 330) rotate(180)"/>
+<rect class="desktop" x="100" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="110" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="132" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(130 412)"/>
+<rect class="desktop" x="164" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="185" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(194 412)"/>
+<rect class="desktop" x="228" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="238" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="260" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(258 412)"/>
+<rect class="desktop" x="292" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="302" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="324" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(322 412)"/>
+<rect class="desktop" x="356" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="366" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="388" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(386 412)"/>
+<rect class="desktop" x="100" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="121" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(130 548) rotate(180)"/>
+<rect class="desktop" x="164" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="174" y="488" width="18" height="4" rx="1"/>
+<rect class="monitor" x="196" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(194 548) rotate(180)"/>
+<rect class="desktop" x="228" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="238" y="488" width="18" height="4" rx="1"/>
+<rect class="monitor" x="260" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(258 548) rotate(180)"/>
+<rect class="desktop" x="292" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="302" y="488" width="18" height="4" rx="1"/>
+<rect class="monitor" x="324" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(322 548) rotate(180)"/>
+<rect class="desktop" x="356" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="377" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(386 548) rotate(180)"/>
+<rect class="desktop" x="100" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="110" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="132" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(130 630)"/>
+<rect class="desktop" x="164" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="174" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="196" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(194 630)"/>
+<rect class="desktop" x="228" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="238" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="260" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(258 630)"/>
+<rect class="desktop" x="292" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="313" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(322 630)"/>
+<rect class="desktop" x="356" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="366" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="388" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(386 630)"/>
+<rect class="desktop" x="100" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="110" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="132" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(130 766) rotate(180)"/>
+<rect class="desktop" x="164" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="174" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="196" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(194 766) rotate(180)"/>
+<rect class="desktop" x="228" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="249" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(258 766) rotate(180)"/>
+<rect class="desktop" x="292" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="302" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="324" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(322 766) rotate(180)"/>
+<rect class="desktop" x="356" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="366" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="388" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(386 766) rotate(180)"/>
+<rect class="desktop" x="100" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="110" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="132" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(130 848)"/>
+<rect class="desktop" x="164" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="185" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(194 848)"/>
+<rect class="desktop" x="228" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="238" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="260" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(258 848)"/>
+<rect class="desktop" x="292" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="302" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="324" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(322 848)"/>
+<rect class="desktop" x="356" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="366" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="388" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(386 848)"/>
+<rect class="desktop" x="100" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="121" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(130 984) rotate(180)"/>
+<rect class="desktop" x="164" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="174" y="924" width="18" height="4" rx="1"/>
+<rect class="monitor" x="196" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(194 984) rotate(180)"/>
+<rect class="desktop" x="228" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="238" y="924" width="18" height="4" rx="1"/>
+<rect class="monitor" x="260" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(258 984) rotate(180)"/>
+<rect class="desktop" x="292" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="302" y="924" width="18" height="4" rx="1"/>
+<rect class="monitor" x="324" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(322 984) rotate(180)"/>
+<rect class="desktop" x="356" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="377" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(386 984) rotate(180)"/>
+<rect class="desktop" x="100" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="110" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="132" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(130 1066)"/>
+<rect class="desktop" x="164" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="174" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="196" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(194 1066)"/>
+<rect class="desktop" x="228" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="238" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="260" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(258 1066)"/>
+<rect class="desktop" x="292" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="313" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(322 1066)"/>
+<rect class="desktop" x="356" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="366" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="388" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(386 1066)"/>
+<rect class="desktop" x="100" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="110" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="132" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(130 1202) rotate(180)"/>
+<rect class="desktop" x="164" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="174" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="196" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(194 1202) rotate(180)"/>
+<rect class="desktop" x="228" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="249" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(258 1202) rotate(180)"/>
+<rect class="desktop" x="292" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="302" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="324" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(322 1202) rotate(180)"/>
+<rect class="desktop" x="356" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="366" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="388" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(386 1202) rotate(180)"/>
+<rect class="desktop" x="100" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="110" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="132" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(130 1284)"/>
+<rect class="desktop" x="164" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="185" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(194 1284)"/>
+<rect class="desktop" x="228" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="238" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="260" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(258 1284)"/>
+<rect class="desktop" x="292" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="302" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="324" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(322 1284)"/>
+<rect class="desktop" x="356" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="366" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="388" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(386 1284)"/>
+<rect class="desktop" x="100" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="121" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(130 1420) rotate(180)"/>
+<rect class="desktop" x="164" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="174" y="1360" width="18" height="4" rx="1"/>
+<rect class="monitor" x="196" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(194 1420) rotate(180)"/>
+<rect class="desktop" x="228" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="238" y="1360" width="18" height="4" rx="1"/>
+<rect class="monitor" x="260" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(258 1420) rotate(180)"/>
+<rect class="desktop" x="292" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="302" y="1360" width="18" height="4" rx="1"/>
+<rect class="monitor" x="324" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(322 1420) rotate(180)"/>
+<rect class="desktop" x="356" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="377" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(386 1420) rotate(180)"/>
+<rect class="desktop" x="482" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="492" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="514" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(512 194)"/>
+<rect class="desktop" x="546" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="556" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="578" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(576 194)"/>
+<rect class="desktop" x="610" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="620" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="642" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(640 194)"/>
+<rect class="desktop" x="674" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="695" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(704 194)"/>
+<rect class="desktop" x="738" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="748" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="770" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(768 194)"/>
+<rect class="desktop" x="482" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="492" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="514" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(512 330) rotate(180)"/>
+<rect class="desktop" x="546" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="556" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="578" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(576 330) rotate(180)"/>
+<rect class="desktop" x="610" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="631" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(640 330) rotate(180)"/>
+<rect class="desktop" x="674" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="684" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="706" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(704 330) rotate(180)"/>
+<rect class="desktop" x="738" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="748" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="770" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(768 330) rotate(180)"/>
+<rect class="desktop" x="482" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="492" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="514" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(512 412)"/>
+<rect class="desktop" x="546" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="567" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(576 412)"/>
+<rect class="desktop" x="610" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="620" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="642" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(640 412)"/>
+<rect class="desktop" x="674" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="684" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="706" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(704 412)"/>
+<rect class="desktop" x="738" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="748" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="770" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(768 412)"/>
+<rect class="desktop" x="482" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="503" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(512 548) rotate(180)"/>
+<rect class="desktop" x="546" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="556" y="488" width="18" height="4" rx="1"/>
+<rect class="monitor" x="578" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(576 548) rotate(180)"/>
+<rect class="desktop" x="610" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="620" y="488" width="18" height="4" rx="1"/>
+<rect class="monitor" x="642" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(640 548) rotate(180)"/>
+<rect class="desktop" x="674" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="684" y="488" width="18" height="4" rx="1"/>
+<rect class="monitor" x="706" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(704 548) rotate(180)"/>
+<rect class="desktop" x="738" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="759" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(768 548) rotate(180)"/>
+<rect class="desktop" x="482" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="492" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="514" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(512 630)"/>
+<rect class="desktop" x="546" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="556" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="578" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(576 630)"/>
+<rect class="desktop" x="610" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="620" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="642" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(640 630)"/>
+<rect class="desktop" x="674" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="695" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(704 630)"/>
+<rect class="desktop" x="738" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="748" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="770" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(768 630)"/>
+<rect class="desktop" x="482" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="492" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="514" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(512 766) rotate(180)"/>
+<rect class="desktop" x="546" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="556" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="578" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(576 766) rotate(180)"/>
+<rect class="desktop" x="610" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="631" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(640 766) rotate(180)"/>
+<rect class="desktop" x="674" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="684" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="706" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(704 766) rotate(180)"/>
+<rect class="desktop" x="738" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="748" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="770" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(768 766) rotate(180)"/>
+<rect class="desktop" x="482" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="492" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="514" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(512 848)"/>
+<rect class="desktop" x="546" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="567" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(576 848)"/>
+<rect class="desktop" x="610" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="620" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="642" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(640 848)"/>
+<rect class="desktop" x="674" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="684" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="706" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(704 848)"/>
+<rect class="desktop" x="738" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="748" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="770" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(768 848)"/>
+<rect class="desktop" x="482" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="503" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(512 984) rotate(180)"/>
+<rect class="desktop" x="546" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="556" y="924" width="18" height="4" rx="1"/>
+<rect class="monitor" x="578" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(576 984) rotate(180)"/>
+<rect class="desktop" x="610" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="620" y="924" width="18" height="4" rx="1"/>
+<rect class="monitor" x="642" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(640 984) rotate(180)"/>
+<rect class="desktop" x="674" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="684" y="924" width="18" height="4" rx="1"/>
+<rect class="monitor" x="706" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(704 984) rotate(180)"/>
+<rect class="desktop" x="738" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="759" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(768 984) rotate(180)"/>
+<rect class="desktop" x="482" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="492" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="514" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(512 1066)"/>
+<rect class="desktop" x="546" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="556" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="578" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(576 1066)"/>
+<rect class="desktop" x="610" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="620" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="642" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(640 1066)"/>
+<rect class="desktop" x="674" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="695" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(704 1066)"/>
+<rect class="desktop" x="738" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="748" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="770" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(768 1066)"/>
+<rect class="desktop" x="482" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="492" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="514" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(512 1202) rotate(180)"/>
+<rect class="desktop" x="546" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="556" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="578" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(576 1202) rotate(180)"/>
+<rect class="desktop" x="610" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="631" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(640 1202) rotate(180)"/>
+<rect class="desktop" x="674" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="684" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="706" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(704 1202) rotate(180)"/>
+<rect class="desktop" x="738" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="748" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="770" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(768 1202) rotate(180)"/>
+<rect class="desktop" x="482" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="492" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="514" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(512 1284)"/>
+<rect class="desktop" x="546" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="567" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(576 1284)"/>
+<rect class="desktop" x="610" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="620" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="642" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(640 1284)"/>
+<rect class="desktop" x="674" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="684" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="706" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(704 1284)"/>
+<rect class="desktop" x="738" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="748" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="770" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(768 1284)"/>
+<rect class="desktop" x="482" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="503" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(512 1420) rotate(180)"/>
+<rect class="desktop" x="546" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="556" y="1360" width="18" height="4" rx="1"/>
+<rect class="monitor" x="578" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(576 1420) rotate(180)"/>
+<rect class="desktop" x="610" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="620" y="1360" width="18" height="4" rx="1"/>
+<rect class="monitor" x="642" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(640 1420) rotate(180)"/>
+<rect class="desktop" x="674" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="684" y="1360" width="18" height="4" rx="1"/>
+<rect class="monitor" x="706" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(704 1420) rotate(180)"/>
+<rect class="desktop" x="738" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="759" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(768 1420) rotate(180)"/>
+<rect class="desktop" x="864" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="874" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="896" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(894 194)"/>
+<rect class="desktop" x="928" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="938" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="960" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(958 194)"/>
+<rect class="desktop" x="992" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1002" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1024" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1022 194)"/>
+<rect class="desktop" x="1056" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1077" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1086 194)"/>
+<rect class="desktop" x="1120" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1130" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1152" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1150 194)"/>
+<rect class="desktop" x="864" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="874" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="896" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(894 330) rotate(180)"/>
+<rect class="desktop" x="928" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="938" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="960" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(958 330) rotate(180)"/>
+<rect class="desktop" x="992" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1013" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1022 330) rotate(180)"/>
+<rect class="desktop" x="1056" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1066" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1088" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1086 330) rotate(180)"/>
+<rect class="desktop" x="1120" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1130" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1152" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1150 330) rotate(180)"/>
+<rect class="desktop" x="864" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="874" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="896" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(894 412)"/>
+<rect class="desktop" x="928" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="949" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(958 412)"/>
+<rect class="desktop" x="992" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1002" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1024" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1022 412)"/>
+<rect class="desktop" x="1056" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1066" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1088" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1086 412)"/>
+<rect class="desktop" x="1120" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1130" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1152" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1150 412)"/>
+<rect class="desktop" x="864" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="885" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(894 548) rotate(180)"/>
+<rect class="desktop" x="928" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="938" y="488" width="18" height="4" rx="1"/>
+<rect class="monitor" x="960" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(958 548) rotate(180)"/>
+<rect class="desktop" x="992" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1002" y="488" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1024" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1022 548) rotate(180)"/>
+<rect class="desktop" x="1056" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1066" y="488" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1088" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1086 548) rotate(180)"/>
+<rect class="desktop" x="1120" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1141" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1150 548) rotate(180)"/>
+<rect class="desktop" x="864" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="874" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="896" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(894 630)"/>
+<rect class="desktop" x="928" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="938" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="960" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(958 630)"/>
+<rect class="desktop" x="992" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1002" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1024" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1022 630)"/>
+<rect class="desktop" x="1056" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1077" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1086 630)"/>
+<rect class="desktop" x="1120" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1130" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1152" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1150 630)"/>
+<rect class="desktop" x="864" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="874" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="896" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(894 766) rotate(180)"/>
+<rect class="desktop" x="928" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="938" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="960" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(958 766) rotate(180)"/>
+<rect class="desktop" x="992" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1013" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1022 766) rotate(180)"/>
+<rect class="desktop" x="1056" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1066" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1088" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1086 766) rotate(180)"/>
+<rect class="desktop" x="1120" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1130" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1152" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1150 766) rotate(180)"/>
+<rect class="desktop" x="864" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="874" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="896" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(894 848)"/>
+<rect class="desktop" x="928" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="949" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(958 848)"/>
+<rect class="desktop" x="992" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1002" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1024" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1022 848)"/>
+<rect class="desktop" x="1056" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1066" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1088" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1086 848)"/>
+<rect class="desktop" x="1120" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1130" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1152" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1150 848)"/>
+<rect class="desktop" x="864" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="885" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(894 984) rotate(180)"/>
+<rect class="desktop" x="928" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="938" y="924" width="18" height="4" rx="1"/>
+<rect class="monitor" x="960" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(958 984) rotate(180)"/>
+<rect class="desktop" x="992" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1002" y="924" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1024" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1022 984) rotate(180)"/>
+<rect class="desktop" x="1056" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1066" y="924" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1088" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1086 984) rotate(180)"/>
+<rect class="desktop" x="1120" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1141" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1150 984) rotate(180)"/>
+<rect class="desktop" x="864" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="874" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="896" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(894 1066)"/>
+<rect class="desktop" x="928" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="938" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="960" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(958 1066)"/>
+<rect class="desktop" x="992" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1002" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1024" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1022 1066)"/>
+<rect class="desktop" x="1056" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1077" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1086 1066)"/>
+<rect class="desktop" x="1120" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1130" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1152" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1150 1066)"/>
+<rect class="desktop" x="864" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="874" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="896" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(894 1202) rotate(180)"/>
+<rect class="desktop" x="928" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="938" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="960" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(958 1202) rotate(180)"/>
+<rect class="desktop" x="992" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1013" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1022 1202) rotate(180)"/>
+<rect class="desktop" x="1056" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1066" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1088" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1086 1202) rotate(180)"/>
+<rect class="desktop" x="1120" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1130" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1152" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1150 1202) rotate(180)"/>
+<rect class="desktop" x="864" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="874" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="896" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(894 1284)"/>
+<rect class="desktop" x="928" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="949" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(958 1284)"/>
+<rect class="desktop" x="992" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1002" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1024" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1022 1284)"/>
+<rect class="desktop" x="1056" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1066" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1088" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1086 1284)"/>
+<rect class="desktop" x="1120" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1130" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1152" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1150 1284)"/>
+<rect class="desktop" x="864" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="885" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(894 1420) rotate(180)"/>
+<rect class="desktop" x="928" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="938" y="1360" width="18" height="4" rx="1"/>
+<rect class="monitor" x="960" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(958 1420) rotate(180)"/>
+<rect class="desktop" x="992" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1002" y="1360" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1024" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1022 1420) rotate(180)"/>
+<rect class="desktop" x="1056" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1066" y="1360" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1088" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1086 1420) rotate(180)"/>
+<rect class="desktop" x="1120" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1141" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1150 1420) rotate(180)"/>
+<rect class="desktop" x="1246" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1256" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1278" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1276 194)"/>
+<rect class="desktop" x="1310" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1320" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1342" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1340 194)"/>
+<rect class="desktop" x="1374" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1384" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1406" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1404 194)"/>
+<rect class="desktop" x="1438" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1459" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1468 194)"/>
+<rect class="desktop" x="1502" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1512" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1534" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1532 194)"/>
+<rect class="desktop" x="1246" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1256" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1278" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1276 330) rotate(180)"/>
+<rect class="desktop" x="1310" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1320" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1342" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1340 330) rotate(180)"/>
+<rect class="desktop" x="1374" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1395" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1404 330) rotate(180)"/>
+<rect class="desktop" x="1438" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1448" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1470" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1468 330) rotate(180)"/>
+<rect class="desktop" x="1502" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1512" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1534" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1532 330) rotate(180)"/>
+<rect class="desktop" x="1246" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1256" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1278" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1276 412)"/>
+<rect class="desktop" x="1310" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1331" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1340 412)"/>
+<rect class="desktop" x="1374" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1384" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1406" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1404 412)"/>
+<rect class="desktop" x="1438" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1448" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1470" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1468 412)"/>
+<rect class="desktop" x="1502" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1512" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1534" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1532 412)"/>
+<rect class="desktop" x="1246" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1267" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1276 548) rotate(180)"/>
+<rect class="desktop" x="1310" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1320" y="488" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1342" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1340 548) rotate(180)"/>
+<rect class="desktop" x="1374" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1384" y="488" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1406" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1404 548) rotate(180)"/>
+<rect class="desktop" x="1438" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1448" y="488" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1470" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1468 548) rotate(180)"/>
+<rect class="desktop" x="1502" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1523" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1532 548) rotate(180)"/>
+<rect class="desktop" x="1246" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1256" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1278" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1276 630)"/>
+<rect class="desktop" x="1310" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1320" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1342" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1340 630)"/>
+<rect class="desktop" x="1374" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1384" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1406" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1404 630)"/>
+<rect class="desktop" x="1438" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1459" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1468 630)"/>
+<rect class="desktop" x="1502" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1512" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1534" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1532 630)"/>
+<rect class="desktop" x="1246" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1256" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1278" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1276 766) rotate(180)"/>
+<rect class="desktop" x="1310" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1320" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1342" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1340 766) rotate(180)"/>
+<rect class="desktop" x="1374" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1395" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1404 766) rotate(180)"/>
+<rect class="desktop" x="1438" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1448" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1470" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1468 766) rotate(180)"/>
+<rect class="desktop" x="1502" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1512" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1534" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1532 766) rotate(180)"/>
+<rect class="desktop" x="1246" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1256" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1278" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1276 848)"/>
+<rect class="desktop" x="1310" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1331" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1340 848)"/>
+<rect class="desktop" x="1374" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1384" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1406" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1404 848)"/>
+<rect class="desktop" x="1438" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1448" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1470" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1468 848)"/>
+<rect class="desktop" x="1502" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1512" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1534" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1532 848)"/>
+<rect class="desktop" x="1246" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1267" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1276 984) rotate(180)"/>
+<rect class="desktop" x="1310" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1320" y="924" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1342" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1340 984) rotate(180)"/>
+<rect class="desktop" x="1374" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1384" y="924" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1406" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1404 984) rotate(180)"/>
+<rect class="desktop" x="1438" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1448" y="924" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1470" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1468 984) rotate(180)"/>
+<rect class="desktop" x="1502" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1523" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1532 984) rotate(180)"/>
+<rect class="desktop" x="1246" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1256" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1278" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1276 1066)"/>
+<rect class="desktop" x="1310" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1320" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1342" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1340 1066)"/>
+<rect class="desktop" x="1374" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1384" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1406" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1404 1066)"/>
+<rect class="desktop" x="1438" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1459" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1468 1066)"/>
+<rect class="desktop" x="1502" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1512" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1534" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1532 1066)"/>
+<rect class="desktop" x="1246" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1256" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1278" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1276 1202) rotate(180)"/>
+<rect class="desktop" x="1310" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1320" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1342" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1340 1202) rotate(180)"/>
+<rect class="desktop" x="1374" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1395" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1404 1202) rotate(180)"/>
+<rect class="desktop" x="1438" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1448" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1470" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1468 1202) rotate(180)"/>
+<rect class="desktop" x="1502" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1512" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1534" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1532 1202) rotate(180)"/>
+<rect class="desktop" x="1246" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1256" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1278" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1276 1284)"/>
+<rect class="desktop" x="1310" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1331" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1340 1284)"/>
+<rect class="desktop" x="1374" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1384" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1406" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1404 1284)"/>
+<rect class="desktop" x="1438" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1448" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1470" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1468 1284)"/>
+<rect class="desktop" x="1502" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1512" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1534" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1532 1284)"/>
+<rect class="desktop" x="1246" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1267" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1276 1420) rotate(180)"/>
+<rect class="desktop" x="1310" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1320" y="1360" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1342" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1340 1420) rotate(180)"/>
+<rect class="desktop" x="1374" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1384" y="1360" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1406" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1404 1420) rotate(180)"/>
+<rect class="desktop" x="1438" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1448" y="1360" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1470" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1468 1420) rotate(180)"/>
+<rect class="desktop" x="1502" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1523" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1532 1420) rotate(180)"/>
+<rect class="desktop" x="1628" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1638" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1660" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1658 194)"/>
+<rect class="desktop" x="1692" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1702" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1724" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1722 194)"/>
+<rect class="desktop" x="1756" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1766" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1788" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1786 194)"/>
+<rect class="desktop" x="1820" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1841" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1850 194)"/>
+<rect class="desktop" x="1884" y="212" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1894" y="250" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1916" y="250" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1914 194)"/>
+<rect class="desktop" x="1628" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1638" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1660" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1658 330) rotate(180)"/>
+<rect class="desktop" x="1692" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1702" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1724" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1722 330) rotate(180)"/>
+<rect class="desktop" x="1756" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1777" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1786 330) rotate(180)"/>
+<rect class="desktop" x="1820" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1830" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1852" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1850 330) rotate(180)"/>
+<rect class="desktop" x="1884" y="264" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1894" y="270" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1916" y="270" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1914 330) rotate(180)"/>
+<rect class="desktop" x="1628" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1638" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1660" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1658 412)"/>
+<rect class="desktop" x="1692" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1713" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1722 412)"/>
+<rect class="desktop" x="1756" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1766" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1788" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1786 412)"/>
+<rect class="desktop" x="1820" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1830" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1852" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1850 412)"/>
+<rect class="desktop" x="1884" y="430" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1894" y="468" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1916" y="468" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1914 412)"/>
+<rect class="desktop" x="1628" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1649" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1658 548) rotate(180)"/>
+<rect class="desktop" x="1692" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1702" y="488" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1724" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1722 548) rotate(180)"/>
+<rect class="desktop" x="1756" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1766" y="488" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1788" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1786 548) rotate(180)"/>
+<rect class="desktop" x="1820" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1830" y="488" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1852" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1850 548) rotate(180)"/>
+<rect class="desktop" x="1884" y="482" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1905" y="488" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1914 548) rotate(180)"/>
+<rect class="desktop" x="1628" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1638" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1660" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1658 630)"/>
+<rect class="desktop" x="1692" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1702" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1724" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1722 630)"/>
+<rect class="desktop" x="1756" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1766" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1788" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1786 630)"/>
+<rect class="desktop" x="1820" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1841" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1850 630)"/>
+<rect class="desktop" x="1884" y="648" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1894" y="686" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1916" y="686" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1914 630)"/>
+<rect class="desktop" x="1628" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1638" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1660" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1658 766) rotate(180)"/>
+<rect class="desktop" x="1692" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1702" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1724" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1722 766) rotate(180)"/>
+<rect class="desktop" x="1756" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1777" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1786 766) rotate(180)"/>
+<rect class="desktop" x="1820" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1830" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1852" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1850 766) rotate(180)"/>
+<rect class="desktop" x="1884" y="700" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1894" y="706" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1916" y="706" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1914 766) rotate(180)"/>
+<rect class="desktop" x="1628" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1638" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1660" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1658 848)"/>
+<rect class="desktop" x="1692" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1713" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1722 848)"/>
+<rect class="desktop" x="1756" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1766" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1788" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1786 848)"/>
+<rect class="desktop" x="1820" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1830" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1852" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1850 848)"/>
+<rect class="desktop" x="1884" y="866" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1894" y="904" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1916" y="904" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1914 848)"/>
+<rect class="desktop" x="1628" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1649" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1658 984) rotate(180)"/>
+<rect class="desktop" x="1692" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1702" y="924" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1724" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1722 984) rotate(180)"/>
+<rect class="desktop" x="1756" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1766" y="924" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1788" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1786 984) rotate(180)"/>
+<rect class="desktop" x="1820" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1830" y="924" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1852" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1850 984) rotate(180)"/>
+<rect class="desktop" x="1884" y="918" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1905" y="924" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1914 984) rotate(180)"/>
+<rect class="desktop" x="1628" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1638" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1660" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1658 1066)"/>
+<rect class="desktop" x="1692" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1702" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1724" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1722 1066)"/>
+<rect class="desktop" x="1756" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1766" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1788" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1786 1066)"/>
+<rect class="desktop" x="1820" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1841" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1850 1066)"/>
+<rect class="desktop" x="1884" y="1084" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1894" y="1122" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1916" y="1122" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1914 1066)"/>
+<rect class="desktop" x="1628" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1638" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1660" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1658 1202) rotate(180)"/>
+<rect class="desktop" x="1692" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1702" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1724" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1722 1202) rotate(180)"/>
+<rect class="desktop" x="1756" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1777" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1786 1202) rotate(180)"/>
+<rect class="desktop" x="1820" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1830" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1852" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1850 1202) rotate(180)"/>
+<rect class="desktop" x="1884" y="1136" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1894" y="1142" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1916" y="1142" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1914 1202) rotate(180)"/>
+<rect class="desktop" x="1628" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1638" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1660" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1658 1284)"/>
+<rect class="desktop" x="1692" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1713" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1722 1284)"/>
+<rect class="desktop" x="1756" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1766" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1788" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1786 1284)"/>
+<rect class="desktop" x="1820" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1830" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1852" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1850 1284)"/>
+<rect class="desktop" x="1884" y="1302" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1894" y="1340" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1916" y="1340" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1914 1284)"/>
+<rect class="desktop" x="1628" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1649" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1658 1420) rotate(180)"/>
+<rect class="desktop" x="1692" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1702" y="1360" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1724" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1722 1420) rotate(180)"/>
+<rect class="desktop" x="1756" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1766" y="1360" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1788" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1786 1420) rotate(180)"/>
+<rect class="desktop" x="1820" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1830" y="1360" width="18" height="4" rx="1"/>
+<rect class="monitor" x="1852" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1850 1420) rotate(180)"/>
+<rect class="desktop" x="1884" y="1354" width="60" height="48" rx="3"/>
+<rect class="monitor" x="1905" y="1360" width="18" height="4" rx="1"/>
+<use href="#chair" transform="translate(1914 1420) rotate(180)"/>
+</g>
+<g class="plants">
+<use href="#plant" transform="translate(72 262)"/>
+<use href="#plant" transform="translate(444 262)"/>
+<use href="#plant" transform="translate(72 480)"/>
+<use href="#plant" transform="translate(444 480)"/>
+<use href="#plant" transform="translate(72 698)"/>
+<use href="#plant" transform="translate(444 698)"/>
+<use href="#plant" transform="translate(72 916)"/>
+<use href="#plant" transform="translate(444 916)"/>
+<use href="#plant" transform="translate(72 1134)"/>
+<use href="#plant" transform="translate(444 1134)"/>
+<use href="#plant" transform="translate(72 1352)"/>
+<use href="#plant" transform="translate(444 1352)"/>
+<use href="#plant" transform="translate(826 262)"/>
+<use href="#plant" transform="translate(826 480)"/>
+<use href="#plant" transform="translate(826 698)"/>
+<use href="#plant" transform="translate(826 916)"/>
+<use href="#plant" transform="translate(826 1134)"/>
+<use href="#plant" transform="translate(826 1352)"/>
+<use href="#plant" transform="translate(1208 262)"/>
+<use href="#plant" transform="translate(1208 480)"/>
+<use href="#plant" transform="translate(1208 698)"/>
+<use href="#plant" transform="translate(1208 916)"/>
+<use href="#plant" transform="translate(1208 1134)"/>
+<use href="#plant" transform="translate(1208 1352)"/>
+<use href="#plant" transform="translate(1590 262)"/>
+<use href="#plant" transform="translate(1590 480)"/>
+<use href="#plant" transform="translate(1590 698)"/>
+<use href="#plant" transform="translate(1590 916)"/>
+<use href="#plant" transform="translate(1590 1134)"/>
+<use href="#plant" transform="translate(1590 1352)"/>
+<use href="#plant" transform="translate(1972 1134)"/>
+<use href="#plant" transform="translate(1972 1352)"/>
 </g>
 <g class="walls">
-<rect class="wall" x="0" y="0" width="2424" height="1558"/>
+<path class="wall" d="M0 7L2424 7"/>
+<path class="wall" d="M0 1551L2424 1551"/>
+<path class="wall" d="M7 0L7 1558"/>
+<path class="wall" d="M2417 0L2417 1558"/>
+<path class="glass" d="M21 7L221.4 7"/>
+<path class="glass-in" d="M21 7L221.4 7"/>
+<path class="glass" d="M263.4 7L463.8 7"/>
+<path class="glass-in" d="M263.4 7L463.8 7"/>
+<path class="glass" d="M505.8 7L706.2 7"/>
+<path class="glass-in" d="M505.8 7L706.2 7"/>
+<path class="glass" d="M748.2 7L948.6 7"/>
+<path class="glass-in" d="M748.2 7L948.6 7"/>
+<path class="glass" d="M990.6 7L1191 7"/>
+<path class="glass-in" d="M990.6 7L1191 7"/>
+<path class="glass" d="M1233 7L1433.4 7"/>
+<path class="glass-in" d="M1233 7L1433.4 7"/>
+<path class="glass" d="M1475.4 7L1675.8 7"/>
+<path class="glass-in" d="M1475.4 7L1675.8 7"/>
+<path class="glass" d="M1717.8 7L1918.2 7"/>
+<path class="glass-in" d="M1717.8 7L1918.2 7"/>
+<path class="glass" d="M1960.2 7L2160.6 7"/>
+<path class="glass-in" d="M1960.2 7L2160.6 7"/>
+<path class="glass" d="M2202.6 7L2403 7"/>
+<path class="glass-in" d="M2202.6 7L2403 7"/>
+<path class="glass" d="M21 1551L221.4 1551"/>
+<path class="glass-in" d="M21 1551L221.4 1551"/>
+<path class="glass" d="M263.4 1551L463.8 1551"/>
+<path class="glass-in" d="M263.4 1551L463.8 1551"/>
+<path class="glass" d="M505.8 1551L706.2 1551"/>
+<path class="glass-in" d="M505.8 1551L706.2 1551"/>
+<path class="glass" d="M748.2 1551L948.6 1551"/>
+<path class="glass-in" d="M748.2 1551L948.6 1551"/>
+<path class="glass" d="M990.6 1551L1191 1551"/>
+<path class="glass-in" d="M990.6 1551L1191 1551"/>
+<path class="glass" d="M1233 1551L1433.4 1551"/>
+<path class="glass-in" d="M1233 1551L1433.4 1551"/>
+<path class="glass" d="M1475.4 1551L1675.8 1551"/>
+<path class="glass-in" d="M1475.4 1551L1675.8 1551"/>
+<path class="glass" d="M1717.8 1551L1918.2 1551"/>
+<path class="glass-in" d="M1717.8 1551L1918.2 1551"/>
+<path class="glass" d="M1960.2 1551L2160.6 1551"/>
+<path class="glass-in" d="M1960.2 1551L2160.6 1551"/>
+<path class="glass" d="M2202.6 1551L2403 1551"/>
+<path class="glass-in" d="M2202.6 1551L2403 1551"/>
+<path class="glass" d="M7 21L7 238.67"/>
+<path class="glass-in" d="M7 21L7 238.67"/>
+<path class="glass" d="M7 280.67L7 498.33"/>
+<path class="glass-in" d="M7 280.67L7 498.33"/>
+<path class="glass" d="M7 540.33L7 758"/>
+<path class="glass-in" d="M7 540.33L7 758"/>
+<path class="glass" d="M7 800L7 1017.67"/>
+<path class="glass-in" d="M7 800L7 1017.67"/>
+<path class="glass" d="M7 1059.67L7 1277.33"/>
+<path class="glass-in" d="M7 1059.67L7 1277.33"/>
+<path class="glass" d="M7 1319.33L7 1537"/>
+<path class="glass-in" d="M7 1319.33L7 1537"/>
+<path class="glass" d="M2417 21L2417 238.67"/>
+<path class="glass-in" d="M2417 21L2417 238.67"/>
+<path class="glass" d="M2417 280.67L2417 498.33"/>
+<path class="glass-in" d="M2417 280.67L2417 498.33"/>
+<path class="glass" d="M2417 540.33L2417 758"/>
+<path class="glass-in" d="M2417 540.33L2417 758"/>
+<path class="glass" d="M2417 800L2417 1017.67"/>
+<path class="glass-in" d="M2417 800L2417 1017.67"/>
+<path class="glass" d="M2417 1059.67L2417 1277.33"/>
+<path class="glass-in" d="M2417 1059.67L2417 1277.33"/>
+<path class="glass" d="M2417 1319.33L2417 1537"/>
+<path class="glass-in" d="M2417 1319.33L2417 1537"/>
+<rect class="column" x="-11" y="-4" width="22" height="22"/>
+<rect class="column" x="231.4" y="-4" width="22" height="22"/>
+<rect class="column" x="473.8" y="-4" width="22" height="22"/>
+<rect class="column" x="716.2" y="-4" width="22" height="22"/>
+<rect class="column" x="958.6" y="-4" width="22" height="22"/>
+<rect class="column" x="1201" y="-4" width="22" height="22"/>
+<rect class="column" x="1443.4" y="-4" width="22" height="22"/>
+<rect class="column" x="1685.8" y="-4" width="22" height="22"/>
+<rect class="column" x="1928.2" y="-4" width="22" height="22"/>
+<rect class="column" x="2170.6" y="-4" width="22" height="22"/>
+<rect class="column" x="2413" y="-4" width="22" height="22"/>
+<rect class="column" x="-11" y="1540" width="22" height="22"/>
+<rect class="column" x="231.4" y="1540" width="22" height="22"/>
+<rect class="column" x="473.8" y="1540" width="22" height="22"/>
+<rect class="column" x="716.2" y="1540" width="22" height="22"/>
+<rect class="column" x="958.6" y="1540" width="22" height="22"/>
+<rect class="column" x="1201" y="1540" width="22" height="22"/>
+<rect class="column" x="1443.4" y="1540" width="22" height="22"/>
+<rect class="column" x="1685.8" y="1540" width="22" height="22"/>
+<rect class="column" x="1928.2" y="1540" width="22" height="22"/>
+<rect class="column" x="2170.6" y="1540" width="22" height="22"/>
+<rect class="column" x="2413" y="1540" width="22" height="22"/>
+<rect class="column" x="-4" y="-11" width="22" height="22"/>
+<rect class="column" x="-4" y="248.67" width="22" height="22"/>
+<rect class="column" x="-4" y="508.33" width="22" height="22"/>
+<rect class="column" x="-4" y="768" width="22" height="22"/>
+<rect class="column" x="-4" y="1027.67" width="22" height="22"/>
+<rect class="column" x="-4" y="1287.33" width="22" height="22"/>
+<rect class="column" x="-4" y="1547" width="22" height="22"/>
+<rect class="column" x="2406" y="-11" width="22" height="22"/>
+<rect class="column" x="2406" y="248.67" width="22" height="22"/>
+<rect class="column" x="2406" y="508.33" width="22" height="22"/>
+<rect class="column" x="2406" y="768" width="22" height="22"/>
+<rect class="column" x="2406" y="1027.67" width="22" height="22"/>
+<rect class="column" x="2406" y="1287.33" width="22" height="22"/>
+<rect class="column" x="2406" y="1547" width="22" height="22"/>
+</g>
+<g class="labels">
+<text class="zlabel" x="82" y="146" text-anchor="start">Engineering</text>
+<text class="zlabel" x="846" y="146" text-anchor="start">Design</text>
+<text class="zlabel" x="1228" y="146" text-anchor="start">Sales</text>
+<text class="zlabel" x="1610" y="146" text-anchor="start">Quiet</text>
+<rect class="pill" x="2123" y="95" width="70" height="27" rx="13.5"/>
+<text class="rlabel" x="2158" y="115" text-anchor="middle">Lifts</text>
+<rect class="pill" x="2029.7" y="239" width="79.6" height="27" rx="13.5"/>
+<text class="rlabel" x="2069.5" y="259" text-anchor="middle">Stairs</text>
+<rect class="pill" x="2225.9" y="239" width="41.2" height="27" rx="13.5"/>
+<text class="rlabel" x="2246.5" y="259" text-anchor="middle">WC</text>
+<rect class="pill" x="2113.4" y="413" width="89.2" height="27" rx="13.5"/>
+<text class="rlabel" x="2158" y="433" text-anchor="middle">Kitchen</text>
+<rect class="pill" x="2118.2" y="647" width="79.6" height="27" rx="13.5"/>
+<text class="rlabel" x="2158" y="667" text-anchor="middle">Lounge</text>
 </g>
 </svg>
