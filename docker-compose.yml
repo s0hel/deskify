@@ -11,3 +11,69 @@ services:
       interval: 2s
       timeout: 3s
       retries: 20
+
+  # --- the local Teams stack: `make teams` --------------------------------
+  # Everything below is behind the "teams" profile, so `make up` still starts
+  # only Postgres. There is no self-hosted Teams; the Playground is Microsoft's
+  # Teams emulator for bots. See README "Teams bot (local)".
+
+  api:
+    profiles: [teams]
+    build: ./api
+    environment:
+      DESKIFY_ENVIRONMENT: dev
+      DESKIFY_DATABASE_URL: postgresql+asyncpg://deskify:deskify@db:5432/deskify
+    # 8099 is what `make api` uses on the host, so the containerised API takes
+    # 8098 there and the two can run side by side against the same database.
+    ports: ["8098:8099"]
+    depends_on:
+      db: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8099/health')"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  bot:
+    profiles: [teams]
+    build: ./bot
+    environment:
+      DESKIFY_API_URL: http://api:8099
+      DESKIFY_BOT_DEFAULT_EMAIL: priya@northwind.example
+      # The Playground sends no Bot Framework token. Real Teams does, and with
+      # CLIENT_ID/CLIENT_SECRET/TENANT_ID set and this removed, the SDK
+      # validates it.
+      DANGEROUSLY_ALLOW_UNAUTHENTICATED_REQUESTS: "true"
+    ports: ["3978:3978"]
+    depends_on:
+      api: { condition: service_healthy }
+
+  playground:
+    profiles: [teams]
+    image: node:22-slim
+    working_dir: /playground
+    # Pinned: this is a preview tool and its CLI has been renamed once already.
+    # The no-op xdg-open is load-bearing: on start the CLI tries to open a
+    # browser, and in a container with no xdg-open it exits 1 with no message
+    # right after printing "Listening on 56150".
+    command:
+      - sh
+      - -c
+      - ln -sf /bin/true /usr/local/bin/xdg-open &&
+        exec npx --yes @microsoft/m365agentsplayground@0.2.28 --disable-telemetry
+    environment:
+      BOT_ENDPOINT: http://bot:3978/api/messages
+      TEAMSAPPTESTER_PORT: "56150"
+      # Where the bot posts its replies. Must be reachable FROM the bot
+      # container, so it names this service, not localhost. The /_connector
+      # suffix is the Playground's mock Bot Connector; without it every reply
+      # 404s and the chat shows the bot failing with no visible reason.
+      M365_AGENTS_PLAYGROUND_SERVICE_URL: http://playground:56150/_connector
+      DEFAULT_CHANNEL_ID: msteams
+    ports: ["56150:56150"]
+    volumes:
+      - playground-npm:/root/.npm
+    depends_on: [bot]
+
+volumes:
+  playground-npm:

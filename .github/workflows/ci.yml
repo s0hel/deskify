@@ -57,6 +57,19 @@ jobs:
       - run: npm run build
         working-directory: client
 
+  bot:
+    # The Teams bot's own logic, against an in-process fake API. No database.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync
+        working-directory: bot
+      - run: uv run ruff check .
+        working-directory: bot
+      - run: uv run pytest -q
+        working-directory: bot
+
   config-guard:
     # Proves the deployment guard still refuses to boot unconfigured. If this
     # ever passes silently, the guard has been weakened.

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.19/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.19",
+  "version": "0.1.0",
+  "id": "${{TEAMS_APP_ID}}",
+  "developer": {
+    "name": "Deskify",
+    "websiteUrl": "https://deskify-web-eight.vercel.app",
+    "privacyUrl": "https://deskify-web-eight.vercel.app",
+    "termsOfUseUrl": "https://deskify-web-eight.vercel.app"
+  },
+  "name": { "short": "Deskify", "full": "Deskify desk booking" },
+  "description": {
+    "short": "Book a desk without leaving Teams.",
+    "full": "Book a desk at any office, see your upcoming bookings, and cancel them, from a chat with the Deskify bot."
+  },
+  "icons": { "color": "color.png", "outline": "outline.png" },
+  "accentColor": "#3D5AFE",
+  "bots": [
+    {
+      "botId": "${{BOT_ID}}",
+      "scopes": ["personal"],
+      "isNotificationOnly": false,
+      "supportsFiles": false,
+      "commandLists": [
+        {
+          "scopes": ["personal"],
+          "commands": [
+            { "title": "book", "description": "Book a desk" },
+            { "title": "bookings", "description": "See and cancel your bookings" }
+          ]
+        }
+      ]
+    }
+  ],
+  "staticTabs": [
+    { "entityId": "conversations", "scopes": ["personal"] },
+    { "entityId": "about", "scopes": ["personal"] }
+  ],
+  "permissions": ["identity"],
+  "validDomains": []
+}

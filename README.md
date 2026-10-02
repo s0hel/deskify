@@ -46,6 +46,7 @@ run, so `make test` never empties the tenant a running app is showing you.
 | Admin console: offices, people, overrides, audit (FR-8.1/8.4/8.6/8.8) | Done |
 | Admin console: floor-plan editor (FR-8.2), CSV import (FR-8.3) | **Not started** |
 | Generated TypeScript client | Done — `client/src/api/schema.d.ts` |
+| Teams bot (FR-7.5): book, list, cancel, in the Agents Playground | Done locally — `bot/`; **real Teams needs a tenant and the IdP** |
 | OIDC end to end for one IdP | **Blocked on IdP credentials** (T6) |
 | 300-desk floor-plan spike on device | **Harness ready, gate not yet run on hardware** |
 | iOS platform, native arm64 simulator build | Done — `client/ios` |
@@ -494,6 +495,68 @@ cd api && uv run pytest tests/test_concurrency.py -q
 
 ---
 
+## Teams bot (local)
+
+FR-7.5: book a desk without leaving Teams. The bot is `bot/`, a Python service on
+the [Teams SDK](https://microsoft.github.io/teams-sdk/) that calls this API over
+HTTP like any other client. In Teams it shows up as its own app in the left rail,
+and its tab is the chat with the bot.
+
+**There is no self-hosted Teams server.** Teams only runs as Microsoft's cloud
+service. Locally, the stand-in is the **Microsoft 365 Agents Playground**, a
+Teams-like chat UI that sends real Bot Framework activities to the bot. It needs
+no Microsoft account, tenant, or tunnel.
+
+```bash
+make teams        # db + API (:8098) + bot (:3978) + Playground, all in Docker
+open http://localhost:56150    # say "hi", or type "book" / "bookings"
+make teams-down
+make test-bot     # the bot's own tests; no database, no Docker
+```
+
+Every chat signs in as `priya@northwind.example` through `/auth/dev-sign-in`. To make
+a Teams user someone else, set `DESKIFY_BOT_USER_MAP` on the bot to
+`{"<aad object id>": "dana@northwind.example"}`. The containerised API seeds only
+an **empty** database, so bookings survive restarts and match what `make web`
+shows.
+
+Three things that cost an afternoon to find:
+
+- The Playground CLI exits 1 **with no message** in a container, right after printing
+  "Listening", because it can't open a browser. The compose command links
+  `xdg-open` to `/bin/true` for that reason.
+- The bot replies to the activity's `serviceUrl`, so it must be
+  `http://playground:56150/_connector`. Without `/_connector`, every reply 404s and
+  the chat looks as if the bot has no answer.
+- Buttons are `Action.Execute`, not `Action.Submit`, and each step's card replaces
+  the last one in place. The bot keeps no conversation state: every button carries
+  what the next step needs.
+
+### To real Teams (not done yet)
+
+The Playground covers the conversation but not identity, so before anyone uses
+this for real:
+
+1. **A tenant that allows custom apps.** This can be the M365 Developer Program
+   sandbox (now limited to Visual Studio subscribers and some partners) or a test
+   tenant from IT with custom-app upload turned on.
+2. **An Entra app registration and an Azure Bot resource.** Give the bot
+   `CLIENT_ID`, `CLIENT_SECRET`, and `TENANT_ID`, and **remove**
+   `DANGEROUSLY_ALLOW_UNAUTHENTICATED_REQUESTS`. The SDK then validates every
+   request's JWT.
+3. **SSO in place of dev sign-in.** `bot/deskify_bot/identity.py` is the only module
+   that changes. It depends on the OIDC work blocked on IdP credentials (T6). The bot
+   must never run against an API with `/auth/dev-sign-in` mounted, other than
+   locally.
+4. **A public HTTPS messaging endpoint.** For development, `devtunnel` or ngrok in
+   front of `:3978` works. For anything shared, deploy the bot.
+5. **The app package.** Fill `${{TEAMS_APP_ID}}` and `${{BOT_ID}}` in
+   `bot/appPackage/manifest.json`, zip it with the two icons, and upload it via
+   *Apps → Manage your apps → Upload*. The Microsoft 365 Agents Toolkit for VS Code
+   automates steps 2, 4 and 5.
+
+---
+
 ## iOS
 
 ```bash
@@ -583,6 +646,13 @@ client/
     api/                generated client + problem+json handling
     admin/              console screens; lazily loaded (TDD §10.1)
   capacitor.config.ts   no server.url, deliberately
+bot/
+  deskify_bot/
+    app.py              Teams SDK wiring; the only file that knows about Teams
+    flow.py             one card action in, the next card out
+    cards.py            Adaptive Cards as JSON
+    identity.py         Teams user -> Deskify token (dev sign-in today)
+  appPackage/           Teams manifest + icons, for real Teams later
 ```
 
 ---
