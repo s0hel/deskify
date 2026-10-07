@@ -42,13 +42,19 @@ services:
       DESKIFY_BOT_DEFAULT_EMAIL: priya@northwind.example
       # The floor pictures in cards are fetched by the BROWSER running the
       # Playground, not by the bot, so this is the host's view of the bot.
-      DESKIFY_BOT_PUBLIC_URL: http://localhost:3978
+      DESKIFY_BOT_PUBLIC_URL: ${DESKIFY_BOT_PUBLIC_URL:-http://localhost:3978}
       # The app's own floor drawings (api/app/plans.py writes them here).
       DESKIFY_PLANS: /plans
       # The Playground sends no Bot Framework token. Real Teams does, and with
       # CLIENT_ID/CLIENT_SECRET/TENANT_ID set and this removed, the SDK
       # validates it.
-      DANGEROUSLY_ALLOW_UNAUTHENTICATED_REQUESTS: "true"
+      # Real Teams: set these in .env (gitignored) and DESKIFY_BOT_ALLOW_UNAUTHENTICATED=false.
+      # Left unset, this is the Playground setup.
+      CLIENT_ID: ${CLIENT_ID:-}
+      CLIENT_SECRET: ${CLIENT_SECRET:-}
+      TENANT_ID: ${TENANT_ID:-}
+      DESKIFY_BOT_IMAGE_SECRET: ${DESKIFY_BOT_IMAGE_SECRET:-}
+      DANGEROUSLY_ALLOW_UNAUTHENTICATED_REQUESTS: ${DESKIFY_BOT_ALLOW_UNAUTHENTICATED:-true}
     ports: ["3978:3978"]
     volumes:
       - ./client/public/plans:/plans:ro

@@ -1,4 +1,4 @@
-.PHONY: up down migrate seed api web test test-api test-client test-bot build spike gen-api plans lint ios ios-open teams teams-down
+.PHONY: up down migrate seed api web test test-api test-client test-bot build spike gen-api plans lint ios ios-open teams teams-down teams-package
 
 # Settings fail closed: environment defaults to "prod", which refuses the
 # development signing key and disables /auth/dev-sign-in. Local targets opt in.
@@ -75,3 +75,6 @@ gen-api:           ## regenerate the typed client from the live OpenAPI schema
 lint:
 	cd api && uv run ruff check .
 	cd bot && uv run ruff check .
+
+teams-package:
+	powershell -NoProfile -File bot/build-package.ps1

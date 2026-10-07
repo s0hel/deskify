@@ -29,3 +29,6 @@ api/.python-version
 
 # Per-developer permission grants, not a project setting.
 .claude/settings.local.json
+
+# built Teams app package
+bot/appPackage/*.zip

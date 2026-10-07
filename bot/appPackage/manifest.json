@@ -38,5 +38,5 @@
     { "entityId": "about", "scopes": ["personal"] }
   ],
   "permissions": ["identity"],
-  "validDomains": []
+  "validDomains": ["${{BOT_DOMAIN}}"]
 }
